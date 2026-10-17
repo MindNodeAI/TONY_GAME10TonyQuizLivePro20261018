@@ -1,0 +1,3437 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TonyQuiz Live Pro SaaS | TONY 楊文澤老師 企業級課堂即時互動平台</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Kahoot 經典四色與立體陰影 */
+    .btn-kahoot-red { background-color: #E21B3C; box-shadow: 0 6px 0 #991228; }
+    .btn-kahoot-red:active { transform: translateY(4px); box-shadow: 0 2px 0 #991228; }
+    .btn-kahoot-blue { background-color: #1368CE; box-shadow: 0 6px 0 #0c458a; }
+    .btn-kahoot-blue:active { transform: translateY(4px); box-shadow: 0 2px 0 #0c458a; }
+    .btn-kahoot-yellow { background-color: #D89E00; box-shadow: 0 6px 0 #946c00; }
+    .btn-kahoot-yellow:active { transform: translateY(4px); box-shadow: 0 2px 0 #946c00; }
+    .btn-kahoot-green { background-color: #26890C; box-shadow: 0 6px 0 #185707; }
+    .btn-kahoot-green:active { transform: translateY(4px); box-shadow: 0 2px 0 #185707; }
+
+    @keyframes popIn {
+      0% { transform: scale(0.75); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop { animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    .word-tag {
+      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, floatSlow 4s ease-in-out infinite;
+    }
+    /* 允許報表與輸入區選取文字 */
+    .selectable-text {
+      user-select: text;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col overflow-x-hidden">
+
+  <!-- ==================== 頂部導覽列 ==================== -->
+  <header class="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-30">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="app.goHome()">
+      <img src="https://firebasestorage.googleapis.com/v0/b/k16-tony-ai-wisdom-platform.firebasestorage.app/o/assets%2F6av64EOvvqQNAIoXqcPfHC5BBeF3%2F1785039560457_1.png?alt=media&token=19b27497-4101-4436-bc80-b299741b7984"
+           alt="TonyStudio Logo" class="w-11 h-11 rounded-xl object-contain bg-slate-950 p-1 border border-slate-700 shadow-lg" />
+      <div>
+        <h1 class="font-black text-lg tracking-wide flex items-center gap-2">
+          TonyQuiz <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/30 to-pink-500/30 text-indigo-200 border border-indigo-400/30 font-bold">PRO SaaS</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">搶答競賽 × 即時文字雲 × 匿名提問牆 · TONY 楊文澤老師</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- 雲端連線狀態徽章 -->
+      <span id="connBadge" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="connText">Firebase 雲端連線中</span>
+      </span>
+
+      <!-- 創作者簡介按鈕 -->
+      <button onclick="app.toggleCreatorModal(true)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 text-xs font-bold">
+        <i data-lucide="award" class="w-4 h-4"></i>
+        <span>關於 TONY 顧問</span>
+      </button>
+
+      <!-- 專屬管理者後台按鈕 (僅 Admin 顯示) -->
+      <button id="btnEnterAdmin" onclick="app.openAdminDashboard()" class="hidden px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black transition flex items-center gap-1.5 text-xs shadow-lg">
+        <i data-lucide="shield-check" class="w-4 h-4"></i>
+        <span>進入管理後台</span>
+      </button>
+
+      <!-- 系統與 AI 設定按鈕 -->
+      <button onclick="app.toggleSettingsModal(true)" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-1.5 text-xs font-medium">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+        <span class="hidden md:inline">AI 與系統設定</span>
+      </button>
+
+      <!-- 已登入會員資訊與登出按鈕 -->
+      <div id="headerUserBox" class="hidden items-center gap-2 pl-2 border-l border-slate-800">
+        <div class="text-right hidden sm:block">
+          <div class="flex items-center gap-1.5 justify-end">
+            <span id="headerUserName" class="text-xs font-black text-white">會員</span>
+            <span id="headerUserRoleBadge" class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">USER</span>
+          </div>
+          <div id="headerUserIdentity" class="text-[10px] text-slate-400">TONY老師學員</div>
+        </div>
+        <button onclick="authApp.logout()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1 transition" title="登出帳號">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          <span>登出</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 1. 會員登入閘門 (AUTH GATE) ==================== -->
+  <section id="view-auth-gate" class="flex-1 flex items-center justify-center p-4 sm:p-6">
+    <div class="max-w-6xl w-full grid lg:grid-cols-12 gap-6 items-stretch">
+
+      <!-- 左側：平台創作者 TONY 顧問簡介與品牌展示 (7欄) -->
+      <div class="lg:col-span-7 bg-gradient-to-br from-slate-900 via-indigo-950/60 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+        <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div>
+          <!-- 頂部品牌橫幅 -->
+          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800/80">
+            <img src="https://firebasestorage.googleapis.com/v0/b/k16-tony-ai-wisdom-platform.firebasestorage.app/o/assets%2F6av64EOvvqQNAIoXqcPfHC5BBeF3%2F1785039560457_1.png?alt=media&token=19b27497-4101-4436-bc80-b299741b7984"
+                 alt="Logo" class="w-12 h-12 rounded-2xl object-contain bg-slate-950 p-1.5 border border-indigo-500/30" />
+            <div>
+              <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Enterprise EdTech SaaS Platform</span>
+              <h2 class="text-xl sm:text-2xl font-black text-white">TonyQuiz Live Pro 雲端智慧互動平台</h2>
+            </div>
+          </div>
+
+          <!-- TONY 顧問頭像與核心頭銜 -->
+          <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 bg-slate-950/60 border border-slate-800/90 rounded-2xl p-5 mb-5">
+            <img src="https://firebasestorage.googleapis.com/v0/b/k16-tony-ai-wisdom-platform.firebasestorage.app/o/assets%2F6av64EOvvqQNAIoXqcPfHC5BBeF3%2F1787580326393_ChatGPT%20Image%202026%E5%B9%B46%E6%9C%8819%E6%97%A5%20%E4%B8%8A%E5%8D%8811_16_14.png?alt=media&token=3c85de41-f36f-46e5-a97a-7bc7eb83a027"
+                 alt="TONY 楊文澤 老師" class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-amber-400/60 shadow-xl shrink-0" />
+            <div class="text-center sm:text-left space-y-2">
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-black">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 平台創作者簡介
+              </div>
+              <h3 class="text-2xl font-black text-white">TONY 楊文澤 老師</h3>
+              <div class="flex flex-wrap justify-center sm:justify-start gap-1.5 text-xs font-bold text-indigo-300">
+                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30">資深數位行銷科技顧問</span>
+                <span class="px-2.5 py-0.5 rounded-lg bg-purple-500/15 border border-purple-500/30">生成式 AI 創作者</span>
+                <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30">創業導師</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 詳細學經歷四宮格 -->
+          <div class="grid sm:grid-cols-2 gap-3.5 text-xs leading-relaxed">
+            <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
+              <div class="font-black text-amber-400 flex items-center gap-1.5 mb-1">
+                <i data-lucide="briefcase" class="w-3.5 h-3.5"></i> 現職 Current
+              </div>
+              <p class="text-slate-200 font-medium">▪ 龍華科大 數位行銷講師</p>
+              <p class="text-slate-200 font-medium">▪ 智策慧 品牌行銷科技顧問</p>
+            </div>
+
+            <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
+              <div class="font-black text-indigo-400 flex items-center gap-1.5 mb-1">
+                <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> 學歷 Education
+              </div>
+              <p class="text-slate-200">- 台大 EMBA 商學組</p>
+              <p class="text-slate-200">- 美國 Arizona State University 互動多媒體設計</p>
+              <p class="text-slate-200">▪ 北科大 工業設計</p>
+            </div>
+
+            <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
+              <div class="font-black text-emerald-400 flex items-center gap-1.5 mb-1">
+                <i data-lucide="building-2" class="w-3.5 h-3.5"></i> 經歷 Experience
+              </div>
+              <p class="text-slate-200">▪ 脈動心聯股份有限公司 創辦人暨執行長</p>
+              <p class="text-slate-300">- 宏碁集團建碁 AOPEN 整合營銷處處長 / 全球品牌行銷總監 / 企業發言人</p>
+              <p class="text-slate-300">- 台灣數位看板多媒體聯盟 (DSMA) 副會長</p>
+            </div>
+
+            <div class="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3.5 space-y-1">
+              <div class="font-black text-pink-400 flex items-center gap-1.5 mb-1">
+                <i data-lucide="mic" class="w-3.5 h-3.5"></i> 專家授課經歷
+              </div>
+              <p class="text-slate-200">▪ CPC 生產力中心 經營管理顧問師班 / 中小企業成長創價能量 講師</p>
+              <p class="text-slate-300">- 台大 EMBA / 長榮 EMBA / 北科大 / 政大 / 世新 業師</p>
+              <p class="text-slate-300">- 2021 MarTech 行銷科技行銷長認證班 講師</p>
+              <p class="text-slate-300">- 2021/2024/2025 T大使與產業尖兵 講師</p>
+              <p class="text-slate-300">- 2025 新光人壽 AI 工具應用 企業內訓講師</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <span>🔒 請先由右側完成會員註冊與信箱驗證以開啟互動系統</span>
+          <span class="text-indigo-400 font-bold">Kahoot × Mentimeter × Slido</span>
+        </div>
+      </div>
+
+      <!-- 右側：多元註冊與登入閘門卡片 (5欄) -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl">
+        <div>
+          <!-- 切換標籤：會員登入 / 新會員註冊 / 忘記密碼 -->
+          <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 mb-6">
+            <button id="authTabLogin" onclick="authApp.switchTab('LOGIN')" class="py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs transition">
+              會員登入
+            </button>
+            <button id="authTabRegister" onclick="authApp.switchTab('REGISTER')" class="py-2.5 rounded-xl text-slate-400 hover:text-white font-bold text-xs transition">
+              新會員註冊
+            </button>
+            <button id="authTabReset" onclick="authApp.switchTab('RESET')" class="py-2.5 rounded-xl text-slate-400 hover:text-white font-bold text-xs transition">
+              忘記密碼
+            </button>
+          </div>
+
+          <!-- 動態訊息橫幅區（綠字驗證成功提示 / 紅字未驗證阻擋警告） -->
+          <div id="authAlertBox" class="hidden mb-5 p-4 rounded-2xl border text-xs sm:text-sm font-bold leading-relaxed selectable-text"></div>
+
+          <!-- 溫馨提醒：垃圾郵件匣提示框（首次註冊與忘記密碼時顯示） -->
+          <div id="spamReminderBanner" class="hidden mb-5 p-4 rounded-2xl bg-amber-500/10 border border-amber-400/40 text-amber-200 text-xs leading-relaxed flex items-start gap-3">
+            <i data-lucide="mail-warning" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+            <div>
+              <div class="font-black text-amber-300 mb-0.5">📬 溫馨提醒：</div>
+              註冊確認信或密碼重設信有時會跑到<strong>「垃圾郵件匣（Spam / 促銷內容）」</strong>，若收件匣未看到，請記得前往垃圾郵件匣確認並點擊驗證連結唷！
+            </div>
+          </div>
+
+          <!-- ==================== 表單 A：會員登入 ==================== -->
+          <div id="form-login" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">電子郵件 Email</label>
+              <input id="loginEmail" type="email" placeholder="請輸入註冊之 Email"
+                class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-xs font-bold text-slate-300">登入密碼</label>
+                <button type="button" onclick="authApp.switchTab('RESET')" class="text-xs text-indigo-400 hover:underline">忘記密碼？</button>
+              </div>
+              <div class="relative">
+                <input id="loginPassword" type="password" placeholder="請輸入密碼"
+                  class="w-full pl-4 pr-11 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text"
+                  onkeydown="if(event.key==='Enter') authApp.loginWithEmail()" />
+                <button type="button" onclick="authApp.togglePasswordVisibility('loginPassword', 'eyeLogin')"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1">
+                  <i id="eyeLogin" data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <button id="btnLoginSubmit" onclick="authApp.loginWithEmail()"
+              class="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 font-black text-base shadow-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="log-in" class="w-4 h-4"></i>
+              <span>立即登入系統</span>
+            </button>
+
+            <!-- 重新寄送驗證信按鈕（當未驗證被阻擋時顯示） -->
+            <button id="btnResendVerify" onclick="authApp.resendVerificationEmail()"
+              class="hidden w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs transition">
+              🔄 沒收到驗證信？點此重新發送驗證信
+            </button>
+          </div>
+
+          <!-- ==================== 表單 B：新會員註冊 ==================== -->
+          <div id="form-register" class="hidden space-y-3.5">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">真實姓名 <span class="text-rose-400">*</span></label>
+              <input id="regRealName" type="text" placeholder="請輸入您的真實姓名（如：王小明）"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">身分選擇 <span class="text-rose-400">*</span></label>
+              <select id="regIdentity"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
+                <option value="TONY老師學員">🎓 TONY老師學員</option>
+                <option value="非學員(一般訪客)">🌐 非學員(一般訪客)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">電子郵件 Email <span class="text-rose-400">*</span></label>
+              <input id="regEmail" type="email" placeholder="將發送認證信至此信箱"
+                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">設定密碼（至少 6 碼） <span class="text-rose-400">*</span></label>
+              <div class="relative">
+                <input id="regPassword" type="password" placeholder="請輸入至少 6 位字元密碼"
+                  class="w-full pl-4 pr-11 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+                <button type="button" onclick="authApp.togglePasswordVisibility('regPassword', 'eyeReg')"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1">
+                  <i id="eyeReg" data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <button id="btnRegSubmit" onclick="authApp.registerWithEmail()"
+              class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 font-black text-base shadow-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>註冊帳號並發送驗證信</span>
+            </button>
+          </div>
+
+          <!-- ==================== 表單 C：忘記密碼 ==================== -->
+          <div id="form-reset" class="hidden space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">輸入您註冊的 Email 信箱</label>
+              <input id="resetEmail" type="email" placeholder="example@gmail.com"
+                class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+            </div>
+
+            <button onclick="authApp.sendResetPassword()"
+              class="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm shadow-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>寄送密碼重設信</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Google 帳號多元登入區 -->
+        <div class="mt-6 pt-5 border-t border-slate-800 space-y-3">
+          <div class="text-center text-xs text-slate-400">或使用多元快速認證</div>
+          <button onclick="authApp.loginWithGoogle()"
+            class="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm shadow-md transition flex items-center justify-center gap-2.5">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.8C6.2 7.2 8.9 5 12 5z"/>
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.7z"/>
+              <path fill="#FBBC05" d="M5.3 14.8c-.2-.8-.4-1.6-.4-2.5s.2-1.7.4-2.5L1.6 7C.6 9 0 11.2 0 13.5s.6 4.5 1.6 6.5l3.7-2.9z"/>
+              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.8C3.5 21.4 7.4 24 12 24z"/>
+            </svg>
+            <span>使用 Google 帳號快速登入 / 註冊</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== 2. 主程式區塊 (登入驗證通過後解鎖，100%保留原有三合一設計) ==================== -->
+  <main id="app-protected-main" class="hidden flex-1 flex flex-col relative">
+
+    <!-- ==================== 視圖 1：首頁（角色選擇與快速入房） ==================== -->
+    <section id="view-landing" class="flex-1 flex items-center justify-center p-4">
+      <div class="max-w-4xl w-full grid md:grid-cols-2 gap-6 items-stretch">
+        
+        <!-- 學員入房卡片 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+          <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold mb-4 border border-emerald-500/20">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> 學員手機端入口
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black mb-2">輸入 PIN 碼參與互動</h2>
+            <p class="text-slate-400 text-sm mb-6">一機同步支援「四色極速搶答」、「文字雲關鍵字投遞」與「Slido 匿名提問按讚」！</p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">遊戲房間號碼 (Game PIN)</label>
+                <input id="inputPin" type="text" maxlength="6" placeholder="例如：8888"
+                  class="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-slate-700 text-center text-2xl font-black tracking-widest text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1.5">您的暱稱 / 組別名稱</label>
+                <input id="inputNickname" type="text" maxlength="16" placeholder="例如：第一組-行銷王"
+                  class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-center text-lg font-bold text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+              </div>
+            </div>
+          </div>
+
+          <button onclick="app.joinRoomAsPlayer()" class="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 font-black text-lg shadow-lg shadow-emerald-900/40 transition flex items-center justify-center gap-2">
+            <span>進入互動大廳</span>
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- 講師主持卡片 -->
+        <div class="bg-gradient-to-br from-indigo-950/90 via-slate-900 to-purple-950/80 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold mb-4 border border-indigo-400/30">
+              <i data-lucide="presentation" class="w-3.5 h-3.5"></i> 講師大螢幕主控端
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black mb-2">建立三合一互動教室</h2>
+            <p class="text-slate-300 text-sm mb-4">融合 Kahoot! 速度搶答、Mentimeter 動態文字雲與 Slido 匿名提問牆，可自由切換純搶答或混合互動。</p>
+
+            <!-- 講師首頁直接調整題型與題數控制面板 -->
+            <div class="bg-slate-950/80 border border-indigo-500/40 rounded-2xl p-4 space-y-3.5 mb-5 shadow-inner">
+              <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-2">
+                <span class="text-slate-400 font-bold">目前生效題庫：</span>
+                <span id="deckCountBadge" class="font-black text-amber-300">混合題庫 (共 5 題)</span>
+              </div>
+
+              <!-- 直接選擇題目型式 -->
+              <div>
+                <label class="block text-xs font-bold text-indigo-300 mb-1">1. 選擇互動題目型式（切換立即生效）</label>
+                <select id="landingQuizModeSelect" onchange="app.onLandingConfigChange()"
+                  class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm font-black text-white focus:outline-none focus:border-indigo-400 cursor-pointer">
+                  <option value="ALL_KAHOOT">🎯 全部 Kahoot 四選一搶答</option>
+                  <option value="MIXED_AUTO" selected>✨ 混合模式（Kahoot 搶答 + 文字雲）</option>
+                  <option value="ALL_WORDCLOUD">☁️ 全部 Mentimeter 即時文字雲</option>
+                </select>
+              </div>
+
+              <!-- 直接調整題目數量與秒數 -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-indigo-300 mb-1">2. 題目數量 (1~20題)</label>
+                  <div class="flex items-center bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
+                    <button type="button" onclick="app.stepQuestionCount(-1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-black text-sm active:scale-95 transition">-</button>
+                    <input id="landingTotalCountInput" type="number" min="1" max="20" value="5" onchange="app.onLandingConfigChange()"
+                      class="w-full bg-transparent text-center font-black text-sm text-amber-300 focus:outline-none selectable-text" />
+                    <button type="button" onclick="app.stepQuestionCount(1)" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-black text-sm active:scale-95 transition">+</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-indigo-300 mb-1">3. 搶答倒數秒數</label>
+                  <select id="landingTimeLimitSelect" onchange="app.onLandingConfigChange()"
+                    class="w-full px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm font-bold text-white focus:outline-none focus:border-indigo-400 cursor-pointer">
+                    <option value="10">⚡ 10 秒</option>
+                    <option value="15">🔥 15 秒</option>
+                    <option value="20" selected>⏱️ 20 秒</option>
+                    <option value="30">🧠 30 秒</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 一鍵快速切換按鈕列 -->
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                <button type="button" onclick="app.applyQuickPreset('ALL_KAHOOT', 5)" class="flex-1 py-1.5 px-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-400/30 text-[11px] font-black text-indigo-200 transition">🎯 全Kahoot 5題</button>
+                <button type="button" onclick="app.applyQuickPreset('ALL_KAHOOT', 10)" class="flex-1 py-1.5 px-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-400/30 text-[11px] font-black text-indigo-200 transition">🔥 全Kahoot 10題</button>
+                <button type="button" onclick="app.applyQuickPreset('MIXED_AUTO', 5)" class="flex-1 py-1.5 px-2 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 border border-pink-400/30 text-[11px] font-black text-pink-200 transition">✨ 混合 5題</button>
+              </div>
+
+              <div class="pt-1">
+                <button onclick="app.toggleQuizEditorModal(true)" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-pink-500/20 hover:from-amber-500/30 hover:to-pink-500/30 border border-amber-400/40 text-amber-200 text-xs font-black flex items-center justify-center gap-1.5 transition shadow">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                  <span>開啟 AI 主題自動出題 / 單題內容編輯器</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="app.createRoomAsHost()" class="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 font-black text-lg shadow-lg shadow-indigo-950/60 transition flex items-center justify-center gap-2">
+            <i data-lucide="play" class="w-5 h-5"></i>
+            <span>啟動大螢幕主持房間</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 視圖 2：講師大螢幕主控端 (HOST VIEW) ==================== -->
+    <section id="view-host" class="hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl w-full mx-auto">
+      
+      <!-- 講師頂部狀態列 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="bg-indigo-600/20 border border-indigo-500/40 px-4 py-1.5 rounded-xl">
+            <span class="text-[11px] text-indigo-300 block">Game PIN 房號</span>
+            <span id="hostPinDisplay" class="text-2xl sm:text-3xl font-black tracking-widest text-white">----</span>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">連線人數</div>
+            <div class="text-xl sm:text-2xl font-black flex items-center gap-1.5">
+              <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
+              <span id="hostPlayerCount">0</span> <span class="text-sm font-normal text-slate-400">人</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 模擬與控制按鈕組 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnToggleQaDrawer" onclick="app.toggleHostQaWall()" class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-black text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 transition">
+            <i data-lucide="message-square-question" class="w-4 h-4"></i>
+            <span>匿名提問牆</span>
+            <span id="hostQaCountBadge" class="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 text-[11px] font-black">0</span>
+          </button>
+
+          <button onclick="app.addSimulatedBots()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-amber-500/30 flex items-center gap-1.5 transition" title="加入虛擬學員自動測試搶答、文字雲與提問">
+            <i data-lucide="bot" class="w-4 h-4"></i>
+            <span>+ 加入 5 位模擬學員</span>
+          </button>
+
+          <button onclick="app.openPlayerPreviewWindow()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-sky-300 border border-sky-500/30 flex items-center gap-1.5 transition">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+            <span>開啟學員測試視窗</span>
+          </button>
+
+          <button id="btnHostNextAction" onclick="app.hostNextStep()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 font-black text-sm shadow-lg transition flex items-center gap-1.5">
+            <span id="btnHostNextText">開始第一題</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 講師階段 A：等待大廳 (LOBBY) -->
+      <div id="host-stage-lobby" class="flex-1 bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center gap-8">
+        <div class="bg-white text-slate-900 p-5 rounded-2xl flex flex-col items-center shadow-xl w-64 shrink-0">
+          <img id="hostQrImg" src="" alt="Join QR Code" class="w-48 h-48 object-contain mb-3 rounded-lg" />
+          <p class="text-xs font-bold text-slate-600 text-center">手機掃碼或輸入 PIN 碼入房</p>
+        </div>
+
+        <div class="flex-1 w-full flex flex-col h-full">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-black flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+              等待學員加入互動大廳...
+            </h3>
+            <span class="text-xs text-slate-400">學員入房後即可隨時在手機切換「匿名提問牆」發問</span>
+          </div>
+          <div id="hostLobbyPlayersGrid" class="flex-1 bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 flex flex-wrap content-start gap-2.5 min-h-[240px] overflow-y-auto">
+            <p class="text-slate-500 text-sm m-auto">尚無學員加入，點擊上方「+ 加入 5 位模擬學員」可立即體驗搶答、文字雲與提問牆效果！</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 講師階段 B1：四選一題目倒數搶答與統計 (QUIZ QUESTION / REVEAL) -->
+      <div id="host-stage-question" class="hidden flex-1 flex flex-col justify-between gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 text-center shadow-xl relative">
+          <div class="flex items-center justify-between text-xs font-bold text-indigo-400 mb-2">
+            <span id="hostQIndexBadge">QUESTION 1 / 5</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">🎯 四選一速度加權搶答</span>
+          </div>
+          <h2 id="hostQuestionText" class="text-2xl sm:text-4xl font-black leading-snug text-white">
+            題目載入中...
+          </h2>
+        </div>
+
+        <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div class="flex flex-col items-center justify-center shrink-0">
+            <div id="hostTimerCircle" class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-indigo-600 border-4 border-indigo-300 flex items-center justify-center text-3xl sm:text-4xl font-black shadow-xl">
+              20
+            </div>
+            <span class="text-xs text-slate-400 mt-2 font-bold">剩餘秒數</span>
+          </div>
+
+          <div class="flex-1 w-full flex flex-col items-center justify-center min-h-[170px]">
+            <div id="hostAnsweringPrompt" class="text-center space-y-2">
+              <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/20 text-indigo-300 font-bold text-sm animate-pulse">
+                <i data-lucide="zap" class="w-4 h-4"></i> 學員正在手機上極速搶答中！
+              </div>
+              <p class="text-xs text-slate-400">越快按下正確色塊，獲得的速度加權分數越高（最高 +1000 分）</p>
+            </div>
+
+            <div id="hostRevealChartBox" class="hidden w-full max-w-xl space-y-4">
+              <div class="grid grid-cols-4 gap-4 items-end h-36 pt-6 px-4">
+                <div class="flex flex-col items-center h-full justify-end">
+                  <span id="barCount0" class="text-sm font-black mb-1">0</span>
+                  <div id="barFill0" class="w-full bg-[#E21B3C] rounded-t-xl transition-all duration-500" style="height: 12%;"></div>
+                  <span class="text-xs mt-1 font-bold text-rose-400">▲ 紅</span>
+                </div>
+                <div class="flex flex-col items-center h-full justify-end">
+                  <span id="barCount1" class="text-sm font-black mb-1">0</span>
+                  <div id="barFill1" class="w-full bg-[#1368CE] rounded-t-xl transition-all duration-500" style="height: 12%;"></div>
+                  <span class="text-xs mt-1 font-bold text-sky-400">◆ 藍</span>
+                </div>
+                <div class="flex flex-col items-center h-full justify-end">
+                  <span id="barCount2" class="text-sm font-black mb-1">0</span>
+                  <div id="barFill2" class="w-full bg-[#D89E00] rounded-t-xl transition-all duration-500" style="height: 12%;"></div>
+                  <span class="text-xs mt-1 font-bold text-amber-400">● 黃</span>
+                </div>
+                <div class="flex flex-col items-center h-full justify-end">
+                  <span id="barCount3" class="text-sm font-black mb-1">0</span>
+                  <div id="barFill3" class="w-full bg-[#26890C] rounded-t-xl transition-all duration-500" style="height: 12%;"></div>
+                  <span class="text-xs mt-1 font-bold text-emerald-400">■ 綠</span>
+                </div>
+              </div>
+              <div id="hostExplanationBox" class="bg-slate-950/90 border border-indigo-500/30 rounded-xl p-3.5 text-xs sm:text-sm text-slate-200">
+                <strong class="text-indigo-400">💡 講師解析：</strong> <span id="hostExplanationText"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-center justify-center shrink-0 bg-slate-950 px-6 py-4 rounded-2xl border border-slate-800">
+            <span id="hostAnsweredCount" class="text-4xl font-black text-emerald-400">0</span>
+            <span class="text-xs text-slate-400 mt-1 font-bold">人已作答</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div id="hostOptCard0" class="btn-kahoot-red rounded-2xl p-4 sm:p-5 flex items-center gap-4 transition-opacity">
+            <div class="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-2xl font-black shrink-0">▲</div>
+            <span id="hostOptText0" class="text-lg sm:text-xl font-bold leading-snug flex-1">選項 A</span>
+            <span id="hostOptCheck0" class="hidden px-2.5 py-1 rounded-lg bg-white text-rose-700 font-black text-xs">✓ 正確解答</span>
+          </div>
+          <div id="hostOptCard1" class="btn-kahoot-blue rounded-2xl p-4 sm:p-5 flex items-center gap-4 transition-opacity">
+            <div class="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-2xl font-black shrink-0">◆</div>
+            <span id="hostOptText1" class="text-lg sm:text-xl font-bold leading-snug flex-1">選項 B</span>
+            <span id="hostOptCheck1" class="hidden px-2.5 py-1 rounded-lg bg-white text-sky-700 font-black text-xs">✓ 正確解答</span>
+          </div>
+          <div id="hostOptCard2" class="btn-kahoot-yellow rounded-2xl p-4 sm:p-5 flex items-center gap-4 transition-opacity">
+            <div class="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-2xl font-black shrink-0">●</div>
+            <span id="hostOptText2" class="text-lg sm:text-xl font-bold leading-snug flex-1">選項 C</span>
+            <span id="hostOptCheck2" class="hidden px-2.5 py-1 rounded-lg bg-white text-amber-800 font-black text-xs">✓ 正確解答</span>
+          </div>
+          <div id="hostOptCard3" class="btn-kahoot-green rounded-2xl p-4 sm:p-5 flex items-center gap-4 transition-opacity">
+            <div class="w-10 h-10 rounded-xl bg-black/20 flex items-center justify-center text-2xl font-black shrink-0">■</div>
+            <span id="hostOptText3" class="text-lg sm:text-xl font-bold leading-snug flex-1">選項 D</span>
+            <span id="hostOptCheck3" class="hidden px-2.5 py-1 rounded-lg bg-white text-emerald-800 font-black text-xs">✓ 正確解答</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 講師階段 B2：Mentimeter 風格即時文字雲舞台 (WORD CLOUD STAGE) -->
+      <div id="host-stage-wordcloud" class="hidden flex-1 flex flex-col justify-between gap-4">
+        <div class="bg-slate-900 border border-pink-500/30 rounded-3xl p-6 text-center shadow-xl">
+          <div class="flex items-center justify-between text-xs font-bold text-pink-400 mb-2">
+            <span id="hostWcIndexBadge">ACTIVITY 1 / 5</span>
+            <span class="px-3 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">☁️ Mentimeter 即時動態文字雲（每投一詞 +200 參與積分）</span>
+          </div>
+          <h2 id="hostWcQuestionText" class="text-2xl sm:text-4xl font-black leading-snug text-white">
+            文字雲題目載入中...
+          </h2>
+        </div>
+
+        <div class="flex-1 bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden min-h-[320px]">
+          <div class="flex items-center justify-between z-10 mb-2">
+            <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-pink-400 animate-ping"></span>
+              已收到 <strong id="hostWcTotalWords" class="text-white text-sm">0</strong> 則關鍵字（字體越大代表越多人產生共鳴）
+            </span>
+            <button onclick="app.summarizeWordCloudWithAI()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-500 hover:from-amber-400 hover:to-pink-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>AI 課堂共識收斂</span>
+            </button>
+          </div>
+
+          <div id="hostWordCloudCanvas" class="flex-1 flex flex-wrap items-center justify-center content-center gap-x-6 gap-y-4 py-6 px-4">
+            <p class="text-slate-500 text-sm">等待學員從手機輸入關鍵字...（您也可點擊上方「+ 加入 5 位模擬學員」自動產生熱絡詞雲）</p>
+          </div>
+
+          <div id="hostWcAiSummaryBox" class="hidden bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 text-xs sm:text-sm text-slate-200 z-10 selectable-text">
+            <strong class="text-amber-400">✨ Gemini AI 課堂共識洞察：</strong>
+            <span id="hostWcAiSummaryText">分析中...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 講師階段 C：即時積分排行榜 / 最終頒獎台 (LEADERBOARD / PODIUM) -->
+      <div id="host-stage-leaderboard" class="hidden flex-1 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center">
+        <div class="text-center mb-6">
+          <span id="leaderboardSubtitle" class="text-xs font-bold uppercase tracking-widest text-amber-400">即時戰況排行</span>
+          <h2 id="leaderboardTitle" class="text-3xl sm:text-4xl font-black mt-1">TOP 5 課堂互動英雄榜</h2>
+        </div>
+        <div id="hostLeaderboardList" class="w-full max-w-2xl space-y-3"></div>
+      </div>
+
+      <!-- 講師階段 D：Slido 風格匿名提問與按讚牆舞台 (HOST QA WALL) -->
+      <div id="host-stage-qawall" class="hidden flex-1 bg-slate-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-4">
+          <div>
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">💬 Slido 雙向互動模式</span>
+            <h2 class="text-2xl sm:text-3xl font-black mt-0.5">課堂即時匿名提問牆（依讚數排序）</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="app.summarizeQaWithAI()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>AI 歸納全班核心提問</span>
+            </button>
+            <button onclick="app.toggleHostQaWall(false)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">
+              返回主舞台畫面
+            </button>
+          </div>
+        </div>
+
+        <div id="hostQaAiSummaryBox" class="hidden mb-4 bg-indigo-950/70 border border-indigo-400/40 rounded-2xl p-4 text-xs sm:text-sm text-indigo-100 selectable-text">
+          <strong class="text-amber-300">✨ Gemini AI 提問焦點收斂：</strong>
+          <span id="hostQaAiSummaryText"></span>
+        </div>
+
+        <div id="hostQaListContainer" class="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[420px]">
+          <p class="text-slate-500 text-sm text-center py-12">目前尚無學員提問。學員可隨時在手機底部切換至「提問牆」匿名發問或按讚！</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== 視圖 3：學員手機端 (PLAYER VIEW) ==================== -->
+    <section id="view-player" class="hidden flex-1 flex flex-col p-4 max-w-lg w-full mx-auto pb-20">
+      
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">PIN: <strong id="playerPinBadge">----</strong></span>
+          <span id="playerNameBadge" class="font-bold text-sm truncate max-w-[130px]">學員</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="playerStreakBadge" class="hidden text-xs px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold">
+            🔥 0 連勝
+          </span>
+          <span id="playerScoreBadge" class="px-3 py-1 rounded-xl bg-indigo-600 font-black text-sm">0 分</span>
+        </div>
+      </div>
+
+      <!-- 學員分頁 A：即時搶答與文字雲舞台 -->
+      <div id="player-tab-game" class="flex-1 flex flex-col">
+        <div id="player-state-waiting" class="flex-1 bg-slate-900/70 border border-slate-800 rounded-3xl p-8 flex flex-col items-center justify-center text-center">
+          <div class="w-20 h-20 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mb-4 animate-bounce">
+            <i data-lucide="eye" class="w-10 h-10 text-indigo-400"></i>
+          </div>
+          <h3 id="playerWaitingTitle" class="text-2xl font-black mb-2">您已成功進入大廳！</h3>
+          <p id="playerWaitingSub" class="text-slate-400 text-sm">請抬頭看教室大螢幕，或點選下方「匿名提問牆」向老師發問！</p>
+        </div>
+
+        <div id="player-state-buttons" class="hidden flex-1 grid grid-cols-2 gap-4">
+          <button onclick="app.submitPlayerAnswer(0)" class="btn-kahoot-red rounded-3xl flex flex-col items-center justify-center p-6 active:scale-95 transition">
+            <span class="text-6xl sm:text-7xl font-black drop-shadow">▲</span>
+            <span id="playerBtnHint0" class="text-xs font-bold mt-3 opacity-90 line-clamp-1">紅色三角形</span>
+          </button>
+          <button onclick="app.submitPlayerAnswer(1)" class="btn-kahoot-blue rounded-3xl flex flex-col items-center justify-center p-6 active:scale-95 transition">
+            <span class="text-6xl sm:text-7xl font-black drop-shadow">◆</span>
+            <span id="playerBtnHint1" class="text-xs font-bold mt-3 opacity-90 line-clamp-1">藍色菱形</span>
+          </button>
+          <button onclick="app.submitPlayerAnswer(2)" class="btn-kahoot-yellow rounded-3xl flex flex-col items-center justify-center p-6 active:scale-95 transition">
+            <span class="text-6xl sm:text-7xl font-black drop-shadow">●</span>
+            <span id="playerBtnHint2" class="text-xs font-bold mt-3 opacity-90 line-clamp-1">黃色圓形</span>
+          </button>
+          <button onclick="app.submitPlayerAnswer(3)" class="btn-kahoot-green rounded-3xl flex flex-col items-center justify-center p-6 active:scale-95 transition">
+            <span class="text-6xl sm:text-7xl font-black drop-shadow">■</span>
+            <span id="playerBtnHint3" class="text-xs font-bold mt-3 opacity-90 line-clamp-1">綠色正方形</span>
+          </button>
+        </div>
+
+        <div id="player-state-wordcloud" class="hidden flex-1 bg-slate-900 border border-pink-500/30 rounded-3xl p-6 flex flex-col justify-between">
+          <div>
+            <span class="inline-block px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-bold mb-3">☁️ 即時文字雲腦力激盪</span>
+            <h3 id="playerWcTitle" class="text-xl font-black mb-2">請輸入您的關鍵字想法</h3>
+            <p class="text-xs text-slate-400 mb-5">您可以連續送出多個關鍵詞（每詞限 12 字內），大螢幕將即時放大熱門詞彙！</p>
+
+            <div class="space-y-3">
+              <input id="playerWcInput" type="text" maxlength="12" placeholder="輸入一個關鍵詞（例如：提示詞工程）"
+                class="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-slate-700 text-base font-bold text-white focus:outline-none focus:border-pink-500 selectable-text"
+                onkeydown="if(event.key==='Enter') app.submitPlayerWord()" />
+              <button onclick="app.submitPlayerWord()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 font-black text-base shadow-lg transition">
+                送出關鍵字 (+200 分)
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-800">
+            <span class="text-xs text-slate-400 block mb-2">我已投遞的詞彙：</span>
+            <div id="playerMyWordsTags" class="flex flex-wrap gap-1.5">
+              <span class="text-xs text-slate-500">尚未投遞</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="player-state-feedback" class="hidden flex-1 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-colors">
+          <div id="playerFeedbackIcon" class="text-6xl mb-4">⚡</div>
+          <h3 id="playerFeedbackTitle" class="text-3xl font-black mb-2">答案已鎖定！</h3>
+          <p id="playerFeedbackSub" class="text-base font-bold opacity-90">等待倒數結束揭曉成績...</p>
+        </div>
+      </div>
+
+      <!-- 學員分頁 B：Slido 匿名提問與按讚牆 -->
+      <div id="player-tab-qa" class="hidden flex-1 flex flex-col gap-4">
+        <div class="bg-slate-900 border border-emerald-500/30 rounded-3xl p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-emerald-400">💬 向 TONY 老師提問</span>
+            <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+              <input id="playerQaAnonCheck" type="checkbox" checked class="rounded accent-emerald-500" />
+              <span>匿名發問</span>
+            </label>
+          </div>
+          <textarea id="playerQaInput" rows="2" maxlength="120" placeholder="輸入您想請教老師的問題，或對下方同學的問題按讚推票..."
+            class="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-emerald-500 selectable-text"></textarea>
+          <button onclick="app.submitPlayerQuestion()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-black text-sm transition">
+            送出提問
+          </button>
+        </div>
+
+        <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-3xl p-4 flex flex-col">
+          <div class="text-xs font-bold text-slate-400 mb-3 flex items-center justify-between">
+            <span>🔥 全班提問熱門榜（點擊愛心附議）</span>
+          </div>
+          <div id="playerQaList" class="flex-1 space-y-2.5 overflow-y-auto max-h-[340px]">
+            <p class="text-slate-500 text-xs text-center py-8">目前尚無提問，成為第一位發問的同學吧！</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 學員手機底部常駐雙模式切換導覽列 -->
+      <div class="fixed bottom-8 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 p-2 z-40">
+        <div class="max-w-lg mx-auto grid grid-cols-2 gap-2">
+          <button id="navBtnGame" onclick="app.switchPlayerTab('GAME')" class="py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+            <span>即時搶答 / 文字雲</span>
+          </button>
+          <button id="navBtnQa" onclick="app.switchPlayerTab('QA')" class="py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="message-square-heart" class="w-4 h-4"></i>
+            <span>匿名提問牆</span>
+            <span id="playerQaBadge" class="px-1.5 py-0.2 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black">0</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== 視圖 4：專屬管理者後台 (ADMIN DASHBOARD) ==================== -->
+    <section id="view-admin" class="hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl w-full mx-auto space-y-6">
+      
+      <!-- 後台頂部標題與操作列 -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 border border-amber-500/40 rounded-3xl p-6 flex flex-wrap items-center justify-between gap-4 shadow-2xl">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
+            <i data-lucide="shield-check" class="w-7 h-7"></i>
+          </div>
+          <div>
+            <div class="text-xs font-black text-amber-400 uppercase tracking-wider">SaaS Admin Control Center</div>
+            <h2 class="text-2xl sm:text-3xl font-black text-white">專屬管理者後台與 AI 商業數據中心</h2>
+            <p class="text-xs text-slate-300 mt-0.5">系統創作者最高權限：<code class="text-amber-300 font-bold">mindnodeai@gmail.com</code>（受永久鎖定保護）</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button onclick="adminApp.loadAllUsers()" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>重新整理名單</span>
+          </button>
+          <button onclick="adminApp.exportUsersCSV()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>匯出 CSV 會員報表 (Excel 防亂碼)</span>
+          </button>
+          <button onclick="app.goHome()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>返回互動主舞台</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 關鍵營運指標卡片 (KPI Cards) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">總註冊會員數</span>
+          <div id="kpiTotalUsers" class="text-3xl font-black text-white mt-1">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">🎓 TONY老師學員數</span>
+          <div id="kpiStudentUsers" class="text-3xl font-black text-emerald-400 mt-1">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">🌐 一般訪客數</span>
+          <div id="kpiVisitorUsers" class="text-3xl font-black text-sky-400 mt-1">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <span class="text-xs text-slate-400">累計總登入互動次數</span>
+          <div id="kpiTotalLogins" class="text-3xl font-black text-amber-400 mt-1">0</div>
+        </div>
+      </div>
+
+      <!-- 會員權限管理動態表格 -->
+      <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h3 class="text-lg font-black flex items-center gap-2">
+            <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
+            <span>註冊會員清冊與 RBAC 權限控管</span>
+          </h3>
+          <input id="adminSearchInput" type="text" placeholder="搜尋姓名、信箱或身分..." oninput="adminApp.renderUsersTable()"
+            class="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 w-64 selectable-text" />
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 bg-slate-950/60">
+                <th class="py-3.5 px-4 font-bold">真實姓名</th>
+                <th class="py-3.5 px-4 font-bold">電子郵件 (Email)</th>
+                <th class="py-3.5 px-4 font-bold">學員身分</th>
+                <th class="py-3.5 px-4 font-bold">系統權限</th>
+                <th class="py-3.5 px-4 font-bold">註冊時間</th>
+                <th class="py-3.5 px-4 font-bold text-center">登錄次數</th>
+                <th class="py-3.5 px-4 font-bold text-right">管理操作 (升降權 / 歷史 / 刪除)</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTableBody" class="divide-y divide-slate-800/70 selectable-text">
+              <tr>
+                <td colspan="7" class="py-8 text-center text-slate-500">正在載入雲端會員資料...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 6. AI 商業分析報告中心（設定起訖時間 + 輸出成 WORD 檔） -->
+      <div class="bg-gradient-to-br from-indigo-950/50 via-slate-900 to-purple-950/40 border border-indigo-500/40 rounded-3xl p-6 sm:p-8 shadow-xl space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-black text-amber-400 uppercase tracking-wider">✨ Gemini AI Business Intelligence</span>
+            <h3 class="text-xl sm:text-2xl font-black text-white mt-0.5">AI 會員成長與課堂互動分析報告生成器</h3>
+            <p class="text-xs text-slate-300 mt-1">設定起訖時間區間，由 AI 自動剖析會員結構、學員佔比、活躍度與行銷教學洞察，並可一鍵匯出為 Word (.doc) 報告檔。</p>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-4 items-end bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">起始日期 (Start Date)</label>
+            <input id="reportStartDate" type="date"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">結束日期 (End Date)</label>
+            <input id="reportEndDate" type="date"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <div class="flex gap-2">
+            <button id="btnGenAiReport" onclick="adminApp.generateAiAnalysisReport()"
+              class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg transition flex items-center justify-center gap-1.5">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>產出 AI 分析報告</span>
+            </button>
+            <button id="btnExportWord" onclick="adminApp.exportReportToWord()"
+              class="py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-black text-xs shadow-lg transition flex items-center justify-center gap-1.5">
+              <i data-lucide="file-text" class="w-4 h-4"></i>
+              <span>輸出 WORD 檔 (.doc)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- AI 報告預覽區 -->
+        <div id="aiReportPreviewContainer" class="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap selectable-text min-h-[160px]">請選擇上方起訖日期並點擊「產出 AI 分析報告」，系統將自動彙整該區間內之註冊會員結構、TONY老師學員與訪客比例、登入活躍度與課堂經營建議，並支援一鍵下載為 Word 報告檔。</div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== 彈窗 A：平台創作者 TONY 顧問完整簡介彈窗 ==================== -->
+  <div id="modal-creator" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-3">
+          <img src="https://firebasestorage.googleapis.com/v0/b/k16-tony-ai-wisdom-platform.firebasestorage.app/o/assets%2F6av64EOvvqQNAIoXqcPfHC5BBeF3%2F1785039560457_1.png?alt=media&token=19b27497-4101-4436-bc80-b299741b7984"
+               alt="Logo" class="w-8 h-8 rounded-lg object-contain" />
+          <h3 class="font-black text-lg text-amber-300">平台創作者：TONY 楊文澤 顧問簡介</h3>
+        </div>
+        <button onclick="app.toggleCreatorModal(false)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6 selectable-text">
+        <div class="flex flex-col sm:flex-row items-center gap-6 bg-slate-950 border border-slate-800 rounded-2xl p-5">
+          <img src="https://firebasestorage.googleapis.com/v0/b/k16-tony-ai-wisdom-platform.firebasestorage.app/o/assets%2F6av64EOvvqQNAIoXqcPfHC5BBeF3%2F1787580326393_ChatGPT%20Image%202026%E5%B9%B46%E6%9C%8819%E6%97%A5%20%E4%B8%8A%E5%8D%8811_16_14.png?alt=media&token=3c85de41-f36f-46e5-a97a-7bc7eb83a027"
+               alt="TONY 楊文澤 老師" class="w-32 h-32 rounded-2xl object-cover border-2 border-amber-400 shadow-xl shrink-0" />
+          <div class="space-y-2 text-center sm:text-left">
+            <h4 class="text-2xl font-black text-white">TONY 楊文澤 老師</h4>
+            <p class="text-amber-300 font-bold text-sm">資深數位行銷科技顧問 ｜ 生成式 AI 創作者 ｜ 創業導師</p>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              深耕品牌行銷、MarTech 行銷科技與生成式 AI 實戰教學，具備 14 年上市公司發言人與全球品牌行銷總監資歷，致力於以創新教學框架賦能企業與大學人才。
+            </p>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4 text-sm">
+          <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-1.5">
+            <h5 class="font-black text-amber-400 mb-2">現職 Current</h5>
+            <p class="text-slate-200">▪ 龍華科大 數位行銷講師</p>
+            <p class="text-slate-200">▪ 智策慧 品牌行銷科技顧問</p>
+          </div>
+
+          <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-1.5">
+            <h5 class="font-black text-indigo-400 mb-2">學歷 Education</h5>
+            <p class="text-slate-200">- 台大 EMBA 商學組</p>
+            <p class="text-slate-200">- 美國 Arizona State University 互動多媒體設計</p>
+            <p class="text-slate-200">▪ 北科大 工業設計</p>
+          </div>
+
+          <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-1.5">
+            <h5 class="font-black text-emerald-400 mb-2">經歷 Experience</h5>
+            <p class="text-slate-200">▪ 脈動心聯股份有限公司 創辦人暨執行長</p>
+            <p class="text-slate-300 text-xs">- 宏碁集團建碁 AOPEN 整合營銷處處長 / 全球品牌行銷總監 / 企業發言人</p>
+            <p class="text-slate-300 text-xs">- 台灣數位看板多媒體聯盟 (DSMA) 副會長</p>
+          </div>
+
+          <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-1.5">
+            <h5 class="font-black text-pink-400 mb-2">專家授課經歷</h5>
+            <p class="text-slate-200 text-xs">▪ CPC 生產力中心 經營管理顧問師班 / 中小企業成長創價能量 講師</p>
+            <p class="text-slate-300 text-xs">- 台大 EMBA / 長榮 EMBA / 北科大 / 政大 / 世新 業師</p>
+            <p class="text-slate-300 text-xs">- 2021 MarTech 行銷科技行銷長認證班 講師</p>
+            <p class="text-slate-300 text-xs">- 2021/2024/2025 T大使與產業尖兵 講師</p>
+            <p class="text-slate-300 text-xs">- 2025 新光人壽 AI 工具應用 企業內訓講師</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-slate-800 flex justify-end bg-slate-950/60">
+        <button onclick="app.toggleCreatorModal(false)" class="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black">關閉視窗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗 B：會員歷史紀錄檢視彈窗 (Admin 專用) ==================== -->
+  <div id="modal-user-history" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="font-black text-base flex items-center gap-2">
+          <i data-lucide="history" class="w-5 h-5 text-indigo-400"></i>
+          <span id="historyModalTitle">會員歷史紀錄</span>
+        </h3>
+        <button onclick="adminApp.closeHistoryModal()" class="p-1.5 rounded-lg bg-slate-800 text-slate-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="historyModalList" class="p-6 overflow-y-auto space-y-2.5 flex-1 selectable-text text-xs"></div>
+      <div class="px-6 py-3.5 border-t border-slate-800 flex justify-end">
+        <button onclick="adminApp.closeHistoryModal()" class="px-5 py-2 rounded-xl bg-slate-800 text-xs font-bold">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗 1：AI 自動出題與彈性題庫編輯器 ==================== -->
+  <div id="modal-quiz-editor" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <h3 class="font-black text-base sm:text-lg flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-5 h-5 text-amber-400"></i>
+          <span>AI 彈性題庫生成與視覺化編輯器（自由設定純 Kahoot 搶答 / 混合 / 題數）</span>
+        </h3>
+        <button onclick="app.toggleQuizEditorModal(false)" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
+        <!-- AI 彈性配置出題面板 -->
+        <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-xs sm:text-sm font-black text-indigo-300 flex items-center gap-1.5">
+              <i data-lucide="wand-2" class="w-4 h-4 text-amber-400"></i>
+              <span>Step 1：設定 AI 出題主題、題型模式與題目數量</span>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="app.applyQuickPreset('ALL_KAHOOT', 5)" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-400/30 text-[11px] font-bold text-indigo-200 transition">⚡ 全 Kahoot 5題</button>
+              <button type="button" onclick="app.applyQuickPreset('ALL_KAHOOT', 10)" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-400/30 text-[11px] font-bold text-indigo-200 transition">🔥 全 Kahoot 10題</button>
+              <button type="button" onclick="app.applyQuickPreset('MIXED_AUTO', 5)" class="px-2.5 py-1 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 border border-pink-400/30 text-[11px] font-bold text-pink-200 transition">🎯 經典混合 5題</button>
+              <button type="button" onclick="app.applyQuickPreset('ALL_WORDCLOUD', 3)" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-400/30 text-[11px] font-bold text-emerald-200 transition">☁️ 純文字雲 3題</button>
+            </div>
+          </div>
+
+          <!-- 授課主題輸入 -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">授課主題或教材重點關鍵字</label>
+            <input id="aiTopicInput" type="text" placeholder="例如：生成式 AI 3P 提問法、跨境電商數據行銷、企業 4R 流程重構..."
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500 selectable-text" />
+          </div>
+
+          <!-- 彈性參數選擇列：題型模式 / 總題數 / 自訂配比 / 作答秒數 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">題目型式 (Mode)</label>
+              <select id="aiQuizModeSelect" onchange="app.onQuizModeChange()"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs sm:text-sm font-bold text-white focus:outline-none focus:border-indigo-500">
+                <option value="ALL_KAHOOT">🎯 全部 Kahoot 四選一搶答</option>
+                <option value="MIXED_AUTO" selected>✨ 混合模式（Kahoot + 文字雲）</option>
+                <option value="ALL_WORDCLOUD">☁️ 全部 Mentimeter 即時文字雲</option>
+                <option value="CUSTOM_RATIO">⚙️ 自訂搶答與文字雲題數配比</option>
+              </select>
+            </div>
+
+            <div id="aiTotalCountBox">
+              <label class="block text-xs font-bold text-slate-300 mb-1">題目總數量（1 ~ 20 題）</label>
+              <div class="flex items-center gap-2">
+                <input id="aiTotalCountInput" type="number" min="1" max="20" value="5"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm font-black text-amber-300 text-center focus:outline-none focus:border-indigo-500 selectable-text" />
+                <span class="text-xs text-slate-400 shrink-0">題</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Kahoot 每題倒數秒數</label>
+              <select id="aiTimeLimitSelect"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs sm:text-sm font-bold text-white focus:outline-none focus:border-indigo-500">
+                <option value="10">⚡ 10 秒（極速刺激）</option>
+                <option value="15">🔥 15 秒（標準節奏）</option>
+                <option value="20" selected>⏱️ 20 秒（經典推薦）</option>
+                <option value="30">🧠 30 秒（深度思考）</option>
+                <option value="45">📚 45 秒（情境案例題）</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 自訂配比子面板（當選擇 CUSTOM_RATIO 時顯示） -->
+          <div id="aiCustomRatioBox" class="hidden grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-950/90 border border-amber-500/30">
+            <div>
+              <label class="block text-xs font-bold text-indigo-300 mb-1">🎯 Kahoot 四選一搶答題數</label>
+              <input id="aiCustomQuizCount" type="number" min="0" max="20" value="4"
+                class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-black text-white text-center selectable-text" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-pink-300 mb-1">☁️ Mentimeter 文字雲題數</label>
+              <input id="aiCustomWcCount" type="number" min="0" max="20" value="1"
+                class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-black text-white text-center selectable-text" />
+            </div>
+          </div>
+
+          <!-- AI 生成按鈕與狀態提示 -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+            <p id="aiGenStatus" class="text-xs text-amber-300 font-bold hidden flex-1"></p>
+            <button id="btnGenerateAiQuiz" onclick="app.generateQuizWithGemini()" class="w-full sm:w-auto ml-auto px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shrink-0 shadow-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>立即請 Gemini AI 依設定生成題庫</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 視覺化題庫清單與手動微調 / JSON 切換區 -->
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div class="flex items-center gap-2">
+              <button id="tabEditorVisual" onclick="app.switchEditorMode('VISUAL')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-black transition">
+                📋 視覺化單題設定 (<span id="editorVisualCount">5</span> 題)
+              </button>
+              <button id="tabEditorJson" onclick="app.switchEditorMode('JSON')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition">
+                💻 進階 JSON 原始碼
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="app.addBlankQuestion('quiz')" class="px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold transition">
+                + 新增 Kahoot 搶答題
+              </button>
+              <button type="button" onclick="app.addBlankQuestion('wordcloud')" class="px-3 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 text-pink-300 text-xs font-bold transition">
+                + 新增文字雲題
+              </button>
+              <button type="button" onclick="app.resetDefaultQuestions()" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-bold transition">
+                還原預設題庫
+              </button>
+            </div>
+          </div>
+
+          <!-- 視覺化卡片編輯列表 -->
+          <div id="visualQuestionsList" class="space-y-3 max-h-[360px] overflow-y-auto pr-1"></div>
+
+          <!-- JSON 編輯區 (預設隱藏，點擊切換) -->
+          <div id="jsonEditorContainer" class="hidden">
+            <textarea id="questionsJsonTextarea" rows="11" oninput="app.onJsonTextareaInput()"
+              class="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-300 focus:outline-none focus:border-indigo-500 selectable-text"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-slate-800 flex items-center justify-between gap-3 bg-slate-950/60">
+        <span id="editorFooterSummary" class="text-xs text-slate-400 font-bold">目前共 5 題</span>
+        <div class="flex gap-3">
+          <button onclick="app.toggleQuizEditorModal(false)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold">取消</button>
+          <button onclick="app.saveQuestionsFromTextarea()" class="px-6 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-black shadow-lg">儲存並套用題庫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 彈窗 2：Gemini API 與系統設定 ==================== -->
+  <div id="modal-settings" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-black text-lg flex items-center gap-2">
+          <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i>
+          <span>Gemini AI 金鑰與雲端設定</span>
+        </h3>
+        <button onclick="app.toggleSettingsModal(false)" class="p-1.5 rounded-lg bg-slate-800 text-slate-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Google Gemini API Key（用於 AI 自動出題、文字雲收斂、提問總結與後台 AI 分析報告）</label>
+          <input id="cfgGeminiKey" type="password" placeholder="AIzaSy..."
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white selectable-text" />
+          <p class="text-[11px] text-slate-400 mt-1">系統預設優先呼叫 <code class="text-indigo-300">gemini-3.8-flash</code>，並自動備援至 <code class="text-indigo-300">gemini-3.5-flash</code>。</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-200 space-y-1">
+          <div class="font-black">✅ 已內建綁定 Firebase 專案：<code>game10-tonyquiz</code></div>
+          <p class="text-[11px] text-slate-300">Auth 會員認證與 Firestore 資料庫已預設直接連線至您的專屬專案。</p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="app.toggleSettingsModal(false)" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">關閉</button>
+        <button onclick="app.saveSystemSettings()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 底部固定版權宣言 ==================== -->
+  <footer class="bg-slate-950 border-t border-slate-900 py-3 px-4 text-center text-xs text-slate-400 z-30">
+    © 2026 TonyStudio. 本學習平台由 TONY 楊文澤資深AI科技顧問設計. All Rights Reserved.
+  </footer>
+
+  <!-- ==================== Firebase Modular SDK & 全端 SaaS 核心邏輯 ==================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signInWithPopup,
+      GoogleAuthProvider,
+      sendEmailVerification,
+      sendPasswordResetEmail,
+      signOut,
+      updateProfile
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      getDoc,
+      getDocs,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      arrayUnion
+    } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // ==================== 綁定 TONY 老師專屬 Firebase SDK ====================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBGqs2WpjD1U898VsjKEN_c5OJO_SnU9A0",
+      authDomain: "game10-tonyquiz.firebaseapp.com",
+      projectId: "game10-tonyquiz",
+      storageBucket: "game10-tonyquiz.firebasestorage.app",
+      messagingSenderId: "671200782432",
+      appId: "1:671200782432:web:2e7d1e0a09edd3f9733b05",
+      measurementId: "G-VP2FQ27T04"
+    };
+
+    const CREATOR_EMAIL = "mindnodeai@gmail.com";
+
+    const fbApp = initializeApp(firebaseConfig);
+    const auth = getAuth(fbApp);
+    const db = getFirestore(fbApp);
+    const googleProvider = new GoogleAuthProvider();
+
+    // 預設混合題庫（100%保留原有內容並擴充備用題庫池供動態調整題數）
+    const DEFAULT_QUESTIONS = [
+      {
+        type: "wordcloud",
+        q: "【破冰文字雲】提到「生成式 AI 與數位轉型」，您腦中第一個浮現的關鍵字或痛點是什麼？",
+        sampleWords: ["提示詞工程", "提高效率", "品牌內容生成", "不知道怎麼問", "流程自動化", "數據安全", "AI幻覺", "3P提問法", "短影音腳本"]
+      },
+      {
+        type: "quiz",
+        q: "在使用生成式 AI 進行提示詞工程（Prompting）時，加入哪個維度最能有效降低幻覺並對齊專業品質？",
+        options: ["全部使用大寫英文字母", "明確定義「角色任務」與「正向約束條件」", "在結尾加上十個驚嘆號", "只輸入兩個字以內"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "明確賦予角色任務、背景情境、具體步驟與正向約束條件，能大幅收斂 AI 的推理空間。"
+      },
+      {
+        type: "quiz",
+        q: "為什麼課堂互動適合在講授新理論之前，先進行「盲測破冰（Blind Quiz）」或「文字雲收集」？",
+        options: ["為了提早下課", "製造認知衝突與參與感，讓學員在聽講時全神貫注", "測試投影機亮度", "減少講義印刷頁數"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "先讓學員表達觀點或經歷迷思碰撞，能大幅提升後續理論吸收的黃金注意力！"
+      },
+      {
+        type: "wordcloud",
+        q: "【實戰共創文字雲】如果明天要為您的企業打造一個 AI 數位助理，您最希望它幫您解決什麼任務？",
+        sampleWords: ["自動寫企劃書", "客服自動回覆", "社群貼文排程", "競品分析報告", "會議記錄整理", "排班自動化", "品牌健檢"]
+      },
+      {
+        type: "quiz",
+        q: "在 TonyQuiz Live Pro 系統中，結合 Kahoot 搶答、Mentimeter 文字雲與 Slido 提問牆的最大教學優勢是什麼？",
+        options: ["需要下載三個不同的手機 App", "單一連結一氣呵成完成「破冰共創、觀念競答與雙向解惑」", "只能限制 10 個人使用", "必須付費購買國外高價授權"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "透過 Serverless 無伺服器架構，講師能以零成本、無限人數流暢駕馭整場高能量工作坊！"
+      }
+    ];
+
+    const EXTRA_KAHOOT_POOL = [
+      {
+        type: "quiz",
+        q: "在 TONY 老師教授的「3P 提示詞框架」中，明確指定 AI 扮演「資深品牌行銷總監」屬於哪一個環節？",
+        options: ["Persona（角色設定）", "Problem（問題定義）", "Process（執行步驟）", "Price（預算評估）"],
+        answer: 0,
+        timeLimit: 20,
+        explanation: "Persona（角色設定）能幫助大型語言模型對齊特定領域專家的知識庫與語氣。"
+      },
+      {
+        type: "quiz",
+        q: "企業導入 MarTech 行銷科技與生成式 AI 時，下列哪一項做法最符合「人機協作」的最佳實踐？",
+        options: ["完全不檢查 AI 產出的文案直接發布", "由 AI 負責 70% 資料初稿與發想，人類專家負責 30% 策略決策與把關", "禁止員工使用任何數位工具", "把所有客戶機密個資直接貼給公開版 AI"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "AI 擅長高效率擴散與初稿生成，而品牌洞察、倫理把關與最終決策仍須由人類專家主導。"
+      },
+      {
+        type: "quiz",
+        q: "當生成式 AI 產出看似合理但實際上並不存在的錯誤資訊時，這個現象在 AI 領域稱為什麼？",
+        options: ["AI 感冒 (Cold)", "AI 幻覺 (Hallucination)", "AI 休眠 (Sleep)", "AI 超頻 (Overclock)"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "AI 幻覺（Hallucination）可透過提供參考文本（RAG）與明確約束條件來大幅降低。"
+      },
+      {
+        type: "quiz",
+        q: "在數位行銷漏斗（Marketing Funnel）中，運用互動式測驗與即時文字雲最有助於提升哪一個指標？",
+        options: ["伺服器耗電量", "用戶停留時間與高雙向互動參與率 (Engagement Rate)", "退貨率", "紙本傳單印刷費"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "遊戲化互動能將單向觀看轉化為雙向參與，大幅拉升用戶參與率與品牌記憶度。"
+      },
+      {
+        type: "quiz",
+        q: "想要讓 Gemini AI 產出結構清晰的企劃表格，在 Prompt 提示詞中加入哪種指令最有效？",
+        options: ["請隨便寫寫就好", "請以 Markdown 表格格式輸出，並包含「策略維度、執行動作、預期KPI」三欄", "請用摩斯密碼回答", "不要分段全部連在一起"],
+        answer: 1,
+        timeLimit: 20,
+        explanation: "明確指定輸出格式（Output Format）與欄位名稱，能讓 AI 產出可直接商用的結構化內容。"
+      }
+    ];
+
+    const EXTRA_WORDCLOUD_POOL = [
+      {
+        type: "wordcloud",
+        q: "【痛點文字雲】在日常行銷或行政工作中，哪一項「重複性任務」最消耗您的寶貴時間？",
+        sampleWords: ["做會議記錄", "回客訴信件", "想社群貼文梗", "整理Excel報表", "跨部門對齊", "改簡報排版", "找素材圖庫"]
+      },
+      {
+        type: "wordcloud",
+        q: "【課後收穫文字雲】請用一個關鍵字形容您今天參與互動工作坊的最大啟發或收穫！",
+        sampleWords: ["超實用", "思維大開", "想立刻實作", "3P提問法", "人機協作", "效率翻倍", "不再害怕AI"]
+      }
+    ];
+
+    const state = {
+      mode: "FIREBASE",
+      db,
+      auth,
+      currentUser: null,
+      userProfile: null,
+      allUsersCache: [],
+      lastGeneratedReportHtml: "",
+      role: null,
+      pin: null,
+      playerId: "p_" + Math.random().toString(36).substring(2, 9),
+      playerName: "",
+      playerTab: "GAME",
+      hostQaWallOpen: false,
+      questions: JSON.parse(localStorage.getItem("tonyquiz_pro_questions") || "null") || DEFAULT_QUESTIONS,
+      roomData: null,
+      timerInterval: null,
+      localChannel: new BroadcastChannel("tonyquiz_pro_channel"),
+      unsubscribeFirestore: null,
+      pendingVerifyCred: null,
+      isRegisteringFlow: false
+    };
+
+    // ==================== 音效合成器 ====================
+    const sound = {
+      ctx: null,
+      init() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      },
+      beep(freq = 440, duration = 0.12, type = "sine") {
+        try {
+          this.init();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      },
+      playSuccess() {
+        this.beep(523.25, 0.1, "triangle");
+        setTimeout(() => this.beep(659.25, 0.1, "triangle"), 100);
+        setTimeout(() => this.beep(783.99, 0.25, "triangle"), 200);
+      },
+      playReveal() {
+        this.beep(392, 0.12, "square");
+        setTimeout(() => this.beep(523.25, 0.3, "square"), 130);
+      }
+    };
+
+    // ==================== Gemini API 通用呼叫器 (支援多模型備援) ====================
+    async function callGeminiAPI(prompt, expectJson = false) {
+      const apiKey = localStorage.getItem("tonyquiz_gemini_key") || "";
+      if (!apiKey) {
+        alert("請先點擊右上角「AI 與系統設定」填入您的 Google Gemini API Key！");
+        app.toggleSettingsModal(true);
+        return null;
+      }
+      const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash"];
+      for (const model of models) {
+        try {
+          const body = { contents: [{ parts: [{ text: prompt }] }] };
+          if (expectJson) body.generationConfig = { responseMimeType: "application/json" };
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) return text;
+        } catch (err) {
+          console.warn(`Model ${model} 呼叫失敗，嘗試備援模型...`, err);
+        }
+      }
+      throw new Error("所有 Gemini 模型皆無法回應，請檢查您的 API Key 是否正確。");
+    }
+
+    // ==================== 1. 會員認證與閘門模組 (authApp) ====================
+    const authApp = {
+      switchTab(tab) {
+        const tabs = {
+          LOGIN: { btn: "authTabLogin", form: "form-login", spam: false },
+          REGISTER: { btn: "authTabRegister", form: "form-register", spam: true },
+          RESET: { btn: "authTabReset", form: "form-reset", spam: true }
+        };
+        Object.keys(tabs).forEach(k => {
+          const item = tabs[k];
+          const btnEl = document.getElementById(item.btn);
+          const formEl = document.getElementById(item.form);
+          if (k === tab) {
+            btnEl.className = "py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs transition";
+            formEl.classList.remove("hidden");
+          } else {
+            btnEl.className = "py-2.5 rounded-xl text-slate-400 hover:text-white font-bold text-xs transition";
+            formEl.classList.add("hidden");
+          }
+        });
+        const spamEl = document.getElementById("spamReminderBanner");
+        if (tabs[tab].spam) spamEl.classList.remove("hidden");
+        else spamEl.classList.add("hidden");
+        lucide.createIcons();
+      },
+
+      showAlert(message, type = "error") {
+        const box = document.getElementById("authAlertBox");
+        box.classList.remove("hidden");
+        if (type === "success") {
+          box.className = "mb-5 p-4 rounded-2xl border bg-emerald-500/15 border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold leading-relaxed selectable-text";
+        } else if (type === "warning") {
+          box.className = "mb-5 p-4 rounded-2xl border bg-amber-500/15 border-amber-500/40 text-amber-200 text-xs sm:text-sm font-bold leading-relaxed selectable-text";
+        } else {
+          box.className = "mb-5 p-4 rounded-2xl border bg-rose-500/15 border-rose-500/40 text-rose-300 text-xs sm:text-sm font-bold leading-relaxed selectable-text";
+        }
+        box.innerHTML = message;
+      },
+
+      hideAlert() {
+        document.getElementById("authAlertBox").classList.add("hidden");
+      },
+
+      togglePasswordVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input.type === "password") {
+          input.type = "text";
+          icon.setAttribute("data-lucide", "eye-off");
+        } else {
+          input.type = "password";
+          icon.setAttribute("data-lucide", "eye");
+        }
+        lucide.createIcons();
+      },
+
+      // Email 新會員註冊 + 發送驗證信 + 跳回登入頁顯示綠字提示
+      async registerWithEmail() {
+        this.hideAlert();
+        const realName = document.getElementById("regRealName").value.trim();
+        const identity = document.getElementById("regIdentity").value;
+        const email = document.getElementById("regEmail").value.trim().toLowerCase();
+        const password = document.getElementById("regPassword").value;
+
+        if (!realName) return this.showAlert("❌ 請輸入您的真實姓名！");
+        if (!email) return this.showAlert("❌ 請輸入電子郵件 Email！");
+        if (!password || password.length < 6) return this.showAlert("❌ 密碼長度至少需 6 個字元！");
+
+        const btn = document.getElementById("btnRegSubmit");
+        btn.disabled = true;
+        btn.innerHTML = `<span>正在建立帳號並發送認證信...</span>`;
+
+        try {
+          state.isRegisteringFlow = true;
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(cred.user, { displayName: realName });
+
+          const isCreator = email === CREATOR_EMAIL.toLowerCase();
+          const nowIso = new Date().toISOString();
+
+          // 寫入 Firestore 會員資料表
+          await setDoc(doc(db, "tonyquiz_users", cred.user.uid), {
+            uid: cred.user.uid,
+            realName,
+            email,
+            identity,
+            role: isCreator ? "admin" : "user",
+            registeredAt: nowIso,
+            lastLoginAt: nowIso,
+            loginCount: 0,
+            history: [
+              { action: "完成帳號註冊", time: nowIso }
+            ]
+          });
+
+          // 發送認證信
+          await sendEmailVerification(cred.user);
+          await signOut(auth);
+          state.isRegisteringFlow = false;
+
+          // 自動切回登入頁並顯示綠字提示
+          this.switchTab("LOGIN");
+          document.getElementById("loginEmail").value = email;
+          document.getElementById("spamReminderBanner").classList.remove("hidden");
+          this.showAlert(
+            `✅ 註冊成功！系統已發送認證信至 <strong>${email}</strong>。<br>請先前往您的信箱（若未看到請檢查<strong>垃圾郵件匣</strong>）點擊驗證連結，完成驗證後即可於下方登入！`,
+            "success"
+          );
+        } catch (err) {
+          state.isRegisteringFlow = false;
+          let msg = err.message;
+          if (err.code === "auth/email-already-in-use") msg = "此 Email 已經註冊過，請直接切換至「會員登入」或使用「忘記密碼」。";
+          this.showAlert(`❌ 註冊失敗：${msg}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="user-plus" class="w-4 h-4"></i><span>註冊帳號並發送驗證信</span>`;
+          lucide.createIcons();
+        }
+      },
+
+      // Email 登入（嚴格檢查 emailVerified）
+      async loginWithEmail() {
+        this.hideAlert();
+        document.getElementById("btnResendVerify").classList.add("hidden");
+        const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+        const password = document.getElementById("loginPassword").value;
+
+        if (!email || !password) return this.showAlert("❌ 請輸入電子郵件與密碼！");
+
+        const btn = document.getElementById("btnLoginSubmit");
+        btn.disabled = true;
+        btn.innerHTML = `<span>驗證中...</span>`;
+
+        try {
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          await cred.user.reload();
+
+          // 嚴格把關：未點擊認證信不得進入主畫面（創作者信箱或已驗證者放行）
+          const isCreator = email === CREATOR_EMAIL.toLowerCase();
+          if (!cred.user.emailVerified && !isCreator) {
+            state.pendingVerifyCred = { email, password };
+            await signOut(auth);
+            document.getElementById("btnResendVerify").classList.remove("hidden");
+            document.getElementById("spamReminderBanner").classList.remove("hidden");
+            this.showAlert(
+              `🚫 <strong>您的信箱尚未完成驗證！</strong><br>請先前往信箱（含<strong>垃圾郵件匣</strong>）點擊驗證連結後再登入。若沒收到信，請點擊下方按鈕重新發送驗證信。`,
+              "error"
+            );
+            return;
+          }
+
+          await this.syncAndRecordUserLogin(cred.user);
+        } catch (err) {
+          let msg = "帳號或密碼錯誤，請重新確認。";
+          if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+            msg = "Email 或密碼不正確，若忘記密碼請點選「忘記密碼」。";
+          }
+          this.showAlert(`❌ 登入失敗：${msg}`);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i><span>立即登入系統</span>`;
+          lucide.createIcons();
+        }
+      },
+
+      // 重新發送驗證信
+      async resendVerificationEmail() {
+        const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+        const password = document.getElementById("loginPassword").value;
+        if (!email || !password) {
+          return this.showAlert("請先在上方輸入您的 Email 與密碼，再點擊重新發送驗證信。");
+        }
+        try {
+          state.isRegisteringFlow = true;
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          await sendEmailVerification(cred.user);
+          await signOut(auth);
+          state.isRegisteringFlow = false;
+          this.showAlert(`✅ 驗證信已重新發送至 <strong>${email}</strong>！請檢查收件匣與垃圾郵件匣。`, "success");
+        } catch (err) {
+          state.isRegisteringFlow = false;
+          this.showAlert(`❌ 重發失敗：${err.message}`);
+        }
+      },
+
+      // Google 快速登入
+      async loginWithGoogle() {
+        this.hideAlert();
+        try {
+          const cred = await signInWithPopup(auth, googleProvider);
+          await this.syncAndRecordUserLogin(cred.user, "TONY老師學員");
+        } catch (err) {
+          this.showAlert(`❌ Google 登入未完成：${err.message}`);
+        }
+      },
+
+      // 忘記密碼寄送重設信
+      async sendResetPassword() {
+        this.hideAlert();
+        const email = document.getElementById("resetEmail").value.trim().toLowerCase();
+        if (!email) return this.showAlert("❌ 請輸入您註冊的電子郵件信箱！");
+        try {
+          await sendPasswordResetEmail(auth, email);
+          document.getElementById("spamReminderBanner").classList.remove("hidden");
+          this.showAlert(`✅ 密碼重設信已寄出至 <strong>${email}</strong>！若收件匣未看到，請至「垃圾郵件匣」查看。`, "success");
+        } catch (err) {
+          this.showAlert(`❌ 無法寄送重設信：${err.message}`);
+        }
+      },
+
+      // 同步並記錄會員登入次數與歷史紀錄
+      async syncAndRecordUserLogin(user, defaultIdentity = "TONY老師學員") {
+        const email = (user.email || "").toLowerCase();
+        const isCreator = email === CREATOR_EMAIL.toLowerCase();
+        const nowIso = new Date().toISOString();
+        const userRef = doc(db, "tonyquiz_users", user.uid);
+
+        try {
+          const snap = await getDoc(userRef);
+          if (!snap.exists()) {
+            const newProfile = {
+              uid: user.uid,
+              realName: user.displayName || email.split("@")[0],
+              email,
+              identity: defaultIdentity,
+              role: isCreator ? "admin" : "user",
+              registeredAt: nowIso,
+              lastLoginAt: nowIso,
+              loginCount: 1,
+              history: [
+                { action: "首次登入系統", time: nowIso }
+              ]
+            };
+            await setDoc(userRef, newProfile);
+            state.userProfile = newProfile;
+          } else {
+            const data = snap.data();
+            const updatedRole = isCreator ? "admin" : (data.role || "user");
+            const newCount = (data.loginCount || 0) + 1;
+            await updateDoc(userRef, {
+              role: updatedRole,
+              lastLoginAt: nowIso,
+              loginCount: newCount,
+              history: arrayUnion({ action: `登入系統 (第 ${newCount} 次)`, time: nowIso })
+            });
+            state.userProfile = { ...data, role: updatedRole, lastLoginAt: nowIso, loginCount: newCount };
+          }
+        } catch (e) {
+          console.warn("Firestore 會員資料同步警告:", e);
+          state.userProfile = {
+            uid: user.uid,
+            realName: user.displayName || email.split("@")[0],
+            email,
+            identity: defaultIdentity,
+            role: isCreator ? "admin" : "user",
+            loginCount: 1
+          };
+        }
+
+        this.unlockAppForUser(user, state.userProfile);
+      },
+
+      // 解鎖進入主系統並設定導覽列與權限
+      unlockAppForUser(user, profile) {
+        state.currentUser = user;
+        document.getElementById("view-auth-gate").classList.add("hidden");
+        document.getElementById("app-protected-main").classList.remove("hidden");
+
+        // 更新頂部會員資訊
+        const userBox = document.getElementById("headerUserBox");
+        userBox.classList.remove("hidden");
+        userBox.classList.add("flex");
+
+        const displayName = profile?.realName || user.displayName || user.email.split("@")[0];
+        document.getElementById("headerUserName").textContent = displayName;
+        document.getElementById("headerUserIdentity").textContent = profile?.identity || "TONY老師學員";
+
+        // 自動帶入學員暱稱欄方便快速入房
+        const nickInput = document.getElementById("inputNickname");
+        if (nickInput && !nickInput.value) {
+          nickInput.value = displayName;
+        }
+
+        const isCreator = (user.email || "").toLowerCase() === CREATOR_EMAIL.toLowerCase();
+        const isAdmin = isCreator || profile?.role === "admin";
+
+        const roleBadge = document.getElementById("headerUserRoleBadge");
+        const btnAdmin = document.getElementById("btnEnterAdmin");
+
+        if (isAdmin) {
+          roleBadge.textContent = isCreator ? "CREATOR ADMIN" : "ADMIN";
+          roleBadge.className = "text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black";
+          btnAdmin.classList.remove("hidden");
+        } else {
+          roleBadge.textContent = "MEMBER";
+          roleBadge.className = "text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold";
+          btnAdmin.classList.add("hidden");
+        }
+
+        lucide.createIcons();
+      },
+
+      // 登出
+      async logout() {
+        await signOut(auth);
+        state.currentUser = null;
+        state.userProfile = null;
+        document.getElementById("app-protected-main").classList.add("hidden");
+        document.getElementById("view-auth-gate").classList.remove("hidden");
+        document.getElementById("headerUserBox").classList.add("hidden");
+        document.getElementById("btnEnterAdmin").classList.add("hidden");
+        this.switchTab("LOGIN");
+      },
+
+      // 記錄使用者在平台內的重要互動行為至 Firestore
+      async appendUserHistory(actionText) {
+        if (!state.currentUser) return;
+        try {
+          const userRef = doc(db, "tonyquiz_users", state.currentUser.uid);
+          await updateDoc(userRef, {
+            history: arrayUnion({
+              action: actionText,
+              time: new Date().toISOString()
+            })
+          });
+        } catch (e) {}
+      }
+    };
+
+    // 監聽 Firebase Auth 狀態
+    onAuthStateChanged(auth, async (user) => {
+      if (state.isRegisteringFlow) return;
+      if (user) {
+        const email = (user.email || "").toLowerCase();
+        const isCreator = email === CREATOR_EMAIL.toLowerCase();
+        if (user.emailVerified || isCreator) {
+          if (!state.currentUser) {
+            await authApp.syncAndRecordUserLogin(user);
+          }
+        }
+      }
+    });
+
+    // ==================== 2. 專屬管理者後台與 AI 報告模組 (adminApp) ====================
+    const adminApp = {
+      async loadAllUsers() {
+        const tbody = document.getElementById("adminUsersTableBody");
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">🔄 正在從 Firestore 同步最新會員清冊...</td></tr>`;
+        try {
+          const snap = await getDocs(collection(db, "tonyquiz_users"));
+          const list = [];
+          snap.forEach(d => list.push(d.data()));
+          // 依註冊時間倒序排列
+          list.sort((a, b) => (b.registeredAt || "").localeCompare(a.registeredAt || ""));
+          state.allUsersCache = list;
+          this.updateKpis();
+          this.renderUsersTable();
+        } catch (err) {
+          tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-rose-400">載入失敗：${err.message}</td></tr>`;
+        }
+      },
+
+      updateKpis() {
+        const users = state.allUsersCache;
+        const total = users.length;
+        const students = users.filter(u => (u.identity || "").includes("TONY老師學員")).length;
+        const visitors = total - students;
+        const totalLogins = users.reduce((acc, u) => acc + (Number(u.loginCount) || 0), 0);
+
+        document.getElementById("kpiTotalUsers").textContent = total;
+        document.getElementById("kpiStudentUsers").textContent = students;
+        document.getElementById("kpiVisitorUsers").textContent = visitors;
+        document.getElementById("kpiTotalLogins").textContent = totalLogins;
+      },
+
+      renderUsersTable() {
+        const q = (document.getElementById("adminSearchInput")?.value || "").trim().toLowerCase();
+        const tbody = document.getElementById("adminUsersTableBody");
+
+        const filtered = state.allUsersCache.filter(u => {
+          if (!q) return true;
+          return (
+            (u.realName || "").toLowerCase().includes(q) ||
+            (u.email || "").toLowerCase().includes(q) ||
+            (u.identity || "").toLowerCase().includes(q)
+          );
+        });
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">查無符合條件之會員資料</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(u => {
+          const isCreator = (u.email || "").toLowerCase() === CREATOR_EMAIL.toLowerCase();
+          const isAdmin = isCreator || u.role === "admin";
+          const regDate = u.registeredAt ? new Date(u.registeredAt).toLocaleString("zh-TW", { hour12: false }) : "-";
+
+          return `
+            <tr class="hover:bg-slate-900/90 transition">
+              <td class="py-3.5 px-4 font-black text-white">${u.realName || "-"}</td>
+              <td class="py-3.5 px-4 font-mono text-slate-300">${u.email || "-"}</td>
+              <td class="py-3.5 px-4">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  (u.identity || "").includes("TONY老師學員")
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                }">
+                  ${u.identity || "TONY老師學員"}
+                </span>
+              </td>
+              <td class="py-3.5 px-4">
+                ${
+                  isCreator
+                    ? `<span class="px-2.5 py-0.5 rounded-lg bg-amber-500/25 text-amber-300 border border-amber-400/50 font-black text-xs">👑 創作者最高權限</span>`
+                    : isAdmin
+                    ? `<span class="px-2.5 py-0.5 rounded-lg bg-purple-500/25 text-purple-300 border border-purple-400/40 font-black text-xs">🛡️ 管理員 (Admin)</span>`
+                    : `<span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold">一般會員 (User)</span>`
+                }
+              </td>
+              <td class="py-3.5 px-4 text-slate-400 text-xs">${regDate}</td>
+              <td class="py-3.5 px-4 text-center font-black text-amber-300">${u.loginCount || 0}</td>
+              <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                <button onclick="adminApp.viewUserHistory('${u.uid}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold text-xs transition">
+                  歷史紀錄
+                </button>
+                ${
+                  isCreator
+                    ? `<span class="px-2.5 py-1 rounded-lg bg-slate-950 text-slate-500 text-xs font-bold border border-slate-800 cursor-not-allowed">系統永久保護</span>`
+                    : `
+                      <button onclick="adminApp.toggleUserRole('${u.uid}', '${isAdmin ? "user" : "admin"}')"
+                        class="px-2.5 py-1 rounded-lg ${
+                          isAdmin ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30" : "bg-indigo-600/30 text-indigo-200 hover:bg-indigo-600/50"
+                        } font-bold text-xs transition">
+                        ${isAdmin ? "降為一般會員" : "升為管理員"}
+                      </button>
+                      <button onclick="adminApp.deleteUser('${u.uid}', '${u.email}')"
+                        class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 font-bold text-xs transition">
+                        刪除
+                      </button>
+                    `
+                }
+              </td>
+            </tr>
+          `;
+        }).join("");
+      },
+
+      // 動態升降權（保護創作者帳號不可降級）
+      async toggleUserRole(uid, targetRole) {
+        const target = state.allUsersCache.find(u => u.uid === uid);
+        if (!target) return;
+        if ((target.email || "").toLowerCase() === CREATOR_EMAIL.toLowerCase()) {
+          alert("系統創作者最高權限帳號受永久鎖定保護，不可降級！");
+          return;
+        }
+        try {
+          await updateDoc(doc(db, "tonyquiz_users", uid), {
+            role: targetRole,
+            history: arrayUnion({
+              action: `管理員將權限變更為 ${targetRole.toUpperCase()}`,
+              time: new Date().toISOString()
+            })
+          });
+          await this.loadAllUsers();
+        } catch (err) {
+          alert("更新權限失敗：" + err.message);
+        }
+      },
+
+      // 刪除違規或測試帳號（保護創作者帳號不可刪除）
+      async deleteUser(uid, email) {
+        if ((email || "").toLowerCase() === CREATOR_EMAIL.toLowerCase()) {
+          alert("系統創作者帳號受永久鎖定保護，不可刪除！");
+          return;
+        }
+        if (!confirm(`確定要刪除會員「${email}」的資料庫紀錄嗎？此操作無法復原。`)) return;
+        try {
+          await deleteDoc(doc(db, "tonyquiz_users", uid));
+          await this.loadAllUsers();
+        } catch (err) {
+          alert("刪除失敗：" + err.message);
+        }
+      },
+
+      // 查看單一會員歷史紀錄
+      viewUserHistory(uid) {
+        const user = state.allUsersCache.find(u => u.uid === uid);
+        if (!user) return;
+        document.getElementById("historyModalTitle").textContent = `${user.realName} (${user.email}) 互動與登錄歷史紀錄`;
+        const listEl = document.getElementById("historyModalList");
+        const history = Array.isArray(user.history) ? [...user.history].reverse() : [];
+
+        if (history.length === 0) {
+          listEl.innerHTML = `<p class="text-slate-500 text-center py-6">尚無歷史紀錄</p>`;
+        } else {
+          listEl.innerHTML = history.map(h => `
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+              <span class="font-bold text-slate-200">${h.action}</span>
+              <span class="text-slate-400 font-mono text-[11px]">${new Date(h.time).toLocaleString("zh-TW", { hour12: false })}</span>
+            </div>
+          `).join("");
+        }
+        document.getElementById("modal-user-history").classList.remove("hidden");
+      },
+
+      closeHistoryModal() {
+        document.getElementById("modal-user-history").classList.add("hidden");
+      },
+
+      // 匯出 CSV 會員報表（含 \uFEFF UTF-8 BOM 防 Excel 中文亂碼）
+      exportUsersCSV() {
+        if (state.allUsersCache.length === 0) {
+          alert("目前尚無會員資料可供匯出！");
+          return;
+        }
+        const headers = ["真實姓名", "電子郵件(Email)", "學員身分", "系統權限", "註冊時間", "最後登入時間", "登錄次數", "歷史互動紀錄摘要"];
+        const rows = state.allUsersCache.map(u => {
+          const histSummary = (u.history || []).map(h => `${h.action}(${new Date(h.time).toLocaleDateString("zh-TW")})`).join(" | ");
+          return [
+            u.realName || "",
+            u.email || "",
+            u.identity || "",
+            u.role || "user",
+            u.registeredAt ? new Date(u.registeredAt).toLocaleString("zh-TW", { hour12: false }) : "",
+            u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString("zh-TW", { hour12: false }) : "",
+            u.loginCount || 0,
+            histSummary
+          ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(",");
+        });
+
+        const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `TonyQuiz_SaaS_會員名單報表_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+
+      // 6. 生成起訖時間區間之 AI 分析報告
+      async generateAiAnalysisReport() {
+        const startStr = document.getElementById("reportStartDate").value;
+        const endStr = document.getElementById("reportEndDate").value;
+
+        let filteredUsers = [...state.allUsersCache];
+        if (startStr) {
+          const startDate = new Date(startStr + "T00:00:00");
+          filteredUsers = filteredUsers.filter(u => !u.registeredAt || new Date(u.registeredAt) >= startDate);
+        }
+        if (endStr) {
+          const endDate = new Date(endStr + "T23:59:59");
+          filteredUsers = filteredUsers.filter(u => !u.registeredAt || new Date(u.registeredAt) <= endDate);
+        }
+
+        const total = filteredUsers.length;
+        const students = filteredUsers.filter(u => (u.identity || "").includes("TONY老師學員")).length;
+        const visitors = total - students;
+        const logins = filteredUsers.reduce((acc, u) => acc + (Number(u.loginCount) || 0), 0);
+
+        const previewEl = document.getElementById("aiReportPreviewContainer");
+        const btn = document.getElementById("btnGenAiReport");
+        btn.disabled = true;
+        previewEl.textContent = "✨ Gemini AI 正在深度剖析區間內之會員成長與課堂互動數據，請稍候...";
+
+        const rangeLabel = `${startStr || "平台創立起"} 至 ${endStr || "今日"}`;
+        const summaryData = filteredUsers.slice(0, 30).map(u => `${u.realName}(${u.identity}, 登入${u.loginCount || 1}次)`).join("；");
+
+        const prompt = `你現在是 TONY 楊文澤老師的企業級 SaaS 平台首席商業數據分析顧問。
+請根據以下【TonyQuiz Live Pro 雲端互動平台】之統計區間數據，撰寫一份結構嚴謹、專業且具洞察力的「會員成長與課堂互動商業分析報告」（繁體中文）：
+- 分析時間區間：${rangeLabel}
+- 區間內總會員數：${total} 人
+- 🎓 TONY老師學員人數：${students} 人
+- 🌐 非學員(一般訪客)人數：${visitors} 人
+- 區間累計總登錄次數：${logins} 次
+- 會員樣本摘要：${summaryData || "尚無樣本"}
+
+請依序包含以下四大章節：
+一、【執行摘要與核心營運指標 (Executive Summary)】
+二、【會員結構分析：TONY老師學員 vs 一般訪客轉化洞察】
+三、【課堂參與活躍度與學習黏著度評估】
+四、【下一步 MarTech 課程推廣與學員經營策略建議（3點具體行動）】`;
+
+        try {
+          const aiText = await callGeminiAPI(prompt, false);
+          if (aiText) {
+            previewEl.textContent = aiText.trim();
+            state.lastGeneratedReportHtml = aiText.trim();
+          }
+        } catch (err) {
+          // 若未設定 API Key 或離線，自動產出結構化本地顧問報告，確保隨時可匯出 Word
+          const fallbackReport = `【TonyQuiz Live Pro SaaS 平台｜AI 會員成長與課堂互動分析報告】
+分析區間：${rangeLabel}
+報告生成時間：${new Date().toLocaleString("zh-TW", { hour12: false })}
+平台創作者：TONY 楊文澤 資深數位行銷科技顧問
+
+一、【執行摘要與核心營運指標 (Executive Summary)】
+在指定統計區間（${rangeLabel}）內，TonyQuiz Live Pro 平台共計納管 ${total} 位認證會員，累計創造 ${logins} 次系統登入與課堂互動。平台透過「四選一搶答 + 即時文字雲 + 匿名提問牆」三合一架構，展現高度課堂留存率。
+
+二、【會員結構分析：TONY老師學員 vs 一般訪客轉化洞察】
+1. TONY老師學員：共 ${students} 人（佔比 ${total ? Math.round((students / total) * 100) : 0}%），為核心高黏著度學習群體。
+2. 非學員(一般訪客)：共 ${visitors} 人（佔比 ${total ? Math.round((visitors / total) * 100) : 0}%），顯示外部口碑擴散與潛在招生名單池持續擴大。
+
+三、【課堂參與活躍度與學習黏著度評估】
+平均每位會員登入互動次數為 ${total ? (logins / total).toFixed(1) : 0} 次。結合盲測搶答與文字雲共創，有效解決傳統單向授課之注意力流失問題。
+
+四、【下一步 MarTech 課程推廣與學員經營策略建議】
+1. 針對高登入頻次之「一般訪客」發送 TONY 老師進階 AI 工作坊邀約信，加速潛在學員轉化。
+2. 將每場課程之「文字雲高頻痛點」與「Slido 熱門提問」匯出為課後電子報素材，強化學員課後複習價值。
+3. 善用 RBAC 管理員授權機制，培訓企業內訓種子助教協同主持分組競賽。`;
+          previewEl.textContent = fallbackReport;
+          state.lastGeneratedReportHtml = fallbackReport;
+        } finally {
+          btn.disabled = false;
+        }
+      },
+
+      // 6. 將 AI 分析報告一鍵輸出成 Microsoft Word (.doc) 檔案
+      exportReportToWord() {
+        const contentText = document.getElementById("aiReportPreviewContainer").textContent.trim();
+        const startStr = document.getElementById("reportStartDate").value || "全部期間";
+        const endStr = document.getElementById("reportEndDate").value || new Date().toISOString().slice(0, 10);
+
+        const formattedBody = contentText
+          .split("\n")
+          .map(line => `<p style="margin: 6pt 0; line-height: 1.6; font-size: 11pt;">${line}</p>`)
+          .join("");
+
+        const wordHtml = `
+          <html xmlns:o='urn:schemas-microsoft-com:office:office'
+                xmlns:w='urn:schemas-microsoft-com:office:word'
+                xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset="utf-8">
+            <title>TonyQuiz Live Pro AI 商業分析報告</title>
+            <style>
+              body { font-family: 'Microsoft JhengHei', 'Noto Sans TC', sans-serif; color: #1e293b; padding: 24pt; }
+              h1 { color: #312e81; font-size: 18pt; border-bottom: 2px solid #4f46e5; padding-bottom: 6pt; }
+              .meta { background: #f1f5f9; padding: 10pt; border-left: 4px solid #f59e0b; margin-bottom: 16pt; font-size: 10pt; }
+              table { width: 100%; border-collapse: collapse; margin: 14pt 0; font-size: 10pt; }
+              th, td { border: 1px solid #cbd5e1; padding: 6pt 8pt; text-align: left; }
+              th { background-color: #e0e7ff; color: #1e1b4b; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>TonyQuiz Live Pro SaaS｜AI 會員與課堂互動分析報告</h1>
+            <div class="meta">
+              <div><strong>統計起訖區間：</strong> ${startStr} ～ ${endStr}</div>
+              <div><strong>報表產出時間：</strong> ${new Date().toLocaleString("zh-TW", { hour12: false })}</div>
+              <div><strong>系統設計顧問：</strong> TONY 楊文澤 老師（資深數位行銷科技顧問 / 生成式 AI 創作者）</div>
+            </div>
+            <h3>📊 關鍵營運指標摘要 (KPI Summary)</h3>
+            <table>
+              <tr>
+                <th>總註冊會員數</th>
+                <th>TONY老師學員數</th>
+                <th>非學員(一般訪客)數</th>
+                <th>累計總登入次數</th>
+              </tr>
+              <tr>
+                <td>${document.getElementById("kpiTotalUsers").textContent} 人</td>
+                <td>${document.getElementById("kpiStudentUsers").textContent} 人</td>
+                <td>${document.getElementById("kpiVisitorUsers").textContent} 人</td>
+                <td>${document.getElementById("kpiTotalLogins").textContent} 次</td>
+              </tr>
+            </table>
+            <h3>✨ AI 深度分析與經營建議</h3>
+            ${formattedBody}
+            <hr style="margin-top:24pt; border:0; border-top:1px solid #cbd5e1;" />
+            <p style="font-size:9pt; color:#64748b; text-align:center;">
+              © 2026 TonyStudio. 本學習平台由 TONY 楊文澤資深AI科技顧問設計. All Rights Reserved.
+            </p>
+          </body>
+          </html>
+        `;
+
+        const blob = new Blob(["\ufeff", wordHtml], { type: "application/msword" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `TonyQuiz_AI分析報告_${startStr}_${endStr}.doc`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    // ==================== 3. 原有三合一課堂互動核心邏輯 (100% 完整保留) ====================
+    const app = {
+      init() {
+        lucide.createIcons();
+        this.updateDeckBadge();
+
+        // 預設設定 AI 報告起訖日期為近 30 天
+        const today = new Date();
+        const prior = new Date();
+        prior.setDate(today.getDate() - 30);
+        const startInput = document.getElementById("reportStartDate");
+        const endInput = document.getElementById("reportEndDate");
+        if (startInput) startInput.value = prior.toISOString().slice(0, 10);
+        if (endInput) endInput.value = today.toISOString().slice(0, 10);
+
+        const params = new URLSearchParams(window.location.search);
+        const urlPin = params.get("pin");
+        if (urlPin) {
+          document.getElementById("inputPin").value = urlPin;
+        }
+
+        state.localChannel.onmessage = (ev) => {
+          if (ev.data && ev.data.pin === state.pin) {
+            state.roomData = ev.data.roomData;
+            this.onRoomStateUpdated();
+          }
+        };
+      },
+
+      toggleCreatorModal(show) {
+        const el = document.getElementById("modal-creator");
+        if (show) el.classList.remove("hidden");
+        else el.classList.add("hidden");
+        lucide.createIcons();
+      },
+
+      openAdminDashboard() {
+        const email = (state.currentUser?.email || "").toLowerCase();
+        const isCreator = email === CREATOR_EMAIL.toLowerCase();
+        const isAdmin = isCreator || state.userProfile?.role === "admin";
+        if (!isAdmin) {
+          alert("您沒有管理員權限！");
+          return;
+        }
+        this.switchView("view-admin");
+        adminApp.loadAllUsers();
+      },
+
+      goHome() {
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        if (state.unsubscribeFirestore) state.unsubscribeFirestore();
+        state.role = null;
+        state.pin = null;
+        state.hostQaWallOpen = false;
+        this.switchView("view-landing");
+      },
+
+      switchView(viewId) {
+        ["view-landing", "view-host", "view-player", "view-admin"].forEach(id => {
+          document.getElementById(id).classList.add("hidden");
+        });
+        document.getElementById(viewId).classList.remove("hidden");
+        lucide.createIcons();
+      },
+
+      updateDeckBadge() {
+        const el = document.getElementById("deckCountBadge");
+        const wcCount = state.questions.filter(q => q.type === "wordcloud").length;
+        const qzCount = state.questions.length - wcCount;
+        if (el) {
+          if (wcCount === 0) {
+            el.textContent = `🎯 全 Kahoot 搶答 (共 ${qzCount} 題)`;
+          } else if (qzCount === 0) {
+            el.textContent = `☁️ 全文字雲共創 (共 ${wcCount} 題)`;
+          } else {
+            el.textContent = `✨ 混合題庫 (${qzCount} 搶答 + ${wcCount} 文字雲，共 ${state.questions.length} 題)`;
+          }
+        }
+        // 同步首頁與彈窗的題數與模式顯示
+        const landingCountEl = document.getElementById("landingTotalCountInput");
+        if (landingCountEl) landingCountEl.value = state.questions.length;
+        const modalCountEl = document.getElementById("aiTotalCountInput");
+        if (modalCountEl) modalCountEl.value = state.questions.length;
+      },
+
+      // 首頁直接加減題數按鈕
+      stepQuestionCount(delta) {
+        const input = document.getElementById("landingTotalCountInput");
+        const current = Number(input.value || state.questions.length);
+        const next = Math.max(1, Math.min(20, current + delta));
+        input.value = next;
+        this.onLandingConfigChange();
+      },
+
+      // 首頁直接切換題型、題數或秒數時，立即重組並套用題庫！
+      onLandingConfigChange() {
+        const mode = document.getElementById("landingQuizModeSelect").value;
+        const totalCount = Math.max(1, Math.min(20, Number(document.getElementById("landingTotalCountInput").value || 5)));
+        const timeLimit = Number(document.getElementById("landingTimeLimitSelect").value || 20);
+
+        // 同步到彈窗內的控制項
+        const modalMode = document.getElementById("aiQuizModeSelect");
+        const modalCount = document.getElementById("aiTotalCountInput");
+        const modalTime = document.getElementById("aiTimeLimitSelect");
+        if (modalMode) modalMode.value = mode;
+        if (modalCount) modalCount.value = totalCount;
+        if (modalTime) modalTime.value = timeLimit;
+
+        this.rebuildActiveDeckByConfig(mode, totalCount, timeLimit);
+      },
+
+      // 根據設定的 Mode、總題數與秒數，立即重組當前題庫（免等待 API 也能瞬間切換）
+      rebuildActiveDeckByConfig(mode, totalCount, timeLimit, customQuizCount = null, customWcCount = null) {
+        const currentQuizzes = state.questions.filter(q => q.type === "quiz");
+        const currentWcs = state.questions.filter(q => q.type === "wordcloud");
+
+        const allQuizPool = [
+          ...currentQuizzes,
+          ...DEFAULT_QUESTIONS.filter(q => q.type === "quiz"),
+          ...EXTRA_KAHOOT_POOL
+        ];
+        const allWcPool = [
+          ...currentWcs,
+          ...DEFAULT_QUESTIONS.filter(q => q.type === "wordcloud"),
+          ...EXTRA_WORDCLOUD_POOL
+        ];
+
+        const pickQuiz = (idx) => {
+          const base = JSON.parse(JSON.stringify(allQuizPool[idx % allQuizPool.length]));
+          base.type = "quiz";
+          base.timeLimit = timeLimit;
+          if (idx >= allQuizPool.length) {
+            base.q = `【第 ${idx + 1} 題】${base.q}`;
+          }
+          return base;
+        };
+
+        const pickWc = (idx) => {
+          const base = JSON.parse(JSON.stringify(allWcPool[idx % allWcPool.length]));
+          base.type = "wordcloud";
+          if (idx >= allWcPool.length) {
+            base.q = `【文字雲 ${idx + 1}】${base.q}`;
+          }
+          return base;
+        };
+
+        let newDeck = [];
+
+        if (mode === "ALL_KAHOOT") {
+          for (let i = 0; i < totalCount; i++) {
+            newDeck.push(pickQuiz(i));
+          }
+        } else if (mode === "ALL_WORDCLOUD") {
+          for (let i = 0; i < totalCount; i++) {
+            newDeck.push(pickWc(i));
+          }
+        } else if (mode === "CUSTOM_RATIO") {
+          const qCount = customQuizCount !== null ? customQuizCount : 4;
+          const wCount = customWcCount !== null ? customWcCount : 1;
+          if (wCount > 0) newDeck.push(pickWc(0));
+          for (let i = 0; i < qCount; i++) newDeck.push(pickQuiz(i));
+          for (let j = 1; j < wCount; j++) newDeck.push(pickWc(j));
+        } else {
+          // MIXED_AUTO 混合模式：第 1 題破冰文字雲，中間 Kahoot 搶答，超過 4 題時倒數第 2 題再穿插文字雲
+          let wcTarget = totalCount === 1 ? 0 : totalCount <= 4 ? 1 : 2;
+          let qzTarget = totalCount - wcTarget;
+          if (wcTarget >= 1) newDeck.push(pickWc(0));
+          for (let i = 0; i < qzTarget; i++) {
+            if (wcTarget >= 2 && i === qzTarget - 1) {
+              newDeck.push(pickWc(1));
+            }
+            newDeck.push(pickQuiz(i));
+          }
+        }
+
+        state.questions = newDeck;
+        this.editorDraftQuestions = JSON.parse(JSON.stringify(newDeck));
+        localStorage.setItem("tonyquiz_pro_questions", JSON.stringify(state.questions));
+        this.updateDeckBadge();
+        if (!document.getElementById("modal-quiz-editor").classList.contains("hidden")) {
+          this.renderVisualQuestionsEditor();
+        }
+        sound.beep(587.33, 0.08, "triangle");
+      },
+
+      async saveRoomState(newRoomData) {
+        state.roomData = newRoomData;
+        localStorage.setItem("tonyquiz_room_" + state.pin, JSON.stringify(newRoomData));
+        state.localChannel.postMessage({ pin: state.pin, roomData: newRoomData });
+
+        if (state.mode === "FIREBASE" && state.db) {
+          try {
+            await setDoc(doc(state.db, "tonyquiz_rooms", state.pin), newRoomData);
+          } catch (e) {
+            console.warn("Firestore 同步寫入失敗，自動使用本機廣播:", e);
+          }
+        }
+        this.onRoomStateUpdated();
+      },
+
+      subscribeRoom(pin) {
+        if (state.mode === "FIREBASE" && state.db) {
+          if (state.unsubscribeFirestore) state.unsubscribeFirestore();
+          state.unsubscribeFirestore = onSnapshot(doc(state.db, "tonyquiz_rooms", pin), (snap) => {
+            if (snap.exists()) {
+              state.roomData = snap.data();
+              this.onRoomStateUpdated();
+            }
+          });
+        }
+        window.addEventListener("storage", (e) => {
+          if (e.key === "tonyquiz_room_" + pin && e.newValue) {
+            state.roomData = JSON.parse(e.newValue);
+            this.onRoomStateUpdated();
+          }
+        });
+      },
+
+      // ==================== 講師端 (HOST) 邏輯 ====================
+      async createRoomAsHost() {
+        state.role = "HOST";
+        state.pin = Math.floor(1000 + Math.random() * 9000).toString();
+        state.hostQaWallOpen = false;
+
+        const initialRoom = {
+          pin: state.pin,
+          status: "LOBBY",
+          currentQ: 0,
+          questionStartTime: 0,
+          timeLeft: 20,
+          questions: state.questions,
+          players: {},
+          wordCloud: {},
+          qaList: [],
+          updatedAt: Date.now()
+        };
+
+        this.switchView("view-host");
+        document.getElementById("hostPinDisplay").textContent = state.pin;
+
+        const joinUrl = `${window.location.origin}${window.location.pathname}?pin=${state.pin}`;
+        document.getElementById("hostQrImg").src =
+          `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(joinUrl)}`;
+
+        this.subscribeRoom(state.pin);
+        await this.saveRoomState(initialRoom);
+        authApp.appendUserHistory(`主持建立互動房間 PIN: ${state.pin}`);
+      },
+
+      toggleHostQaWall(forceState) {
+        if (!state.roomData) return;
+        state.hostQaWallOpen = typeof forceState === "boolean" ? forceState : !state.hostQaWallOpen;
+        this.renderHostUI();
+      },
+
+      async hostNextStep() {
+        const room = state.roomData;
+        if (!room) return;
+        state.hostQaWallOpen = false;
+
+        if (room.status === "LOBBY") {
+          await this.startQuestion(0);
+        } else if (room.status === "QUESTION") {
+          await this.revealAnswer();
+        } else if (room.status === "WORDCLOUD" || room.status === "REVEAL") {
+          room.status = "LEADERBOARD";
+          sound.playSuccess();
+          await this.saveRoomState(room);
+        } else if (room.status === "LEADERBOARD") {
+          if (room.currentQ + 1 < room.questions.length) {
+            await this.startQuestion(room.currentQ + 1);
+          } else {
+            room.status = "PODIUM";
+            sound.playSuccess();
+            await this.saveRoomState(room);
+          }
+        } else if (room.status === "PODIUM") {
+          await this.createRoomAsHost();
+        }
+      },
+
+      async startQuestion(qIndex) {
+        const room = state.roomData;
+        const qObj = room.questions[qIndex];
+        room.currentQ = qIndex;
+        room.questionStartTime = Date.now();
+
+        Object.keys(room.players || {}).forEach(pid => {
+          room.players[pid].lastChoice = null;
+          room.players[pid].lastPoints = 0;
+        });
+
+        document.getElementById("hostWcAiSummaryBox").classList.add("hidden");
+
+        if (qObj.type === "wordcloud") {
+          if (state.timerInterval) clearInterval(state.timerInterval);
+          room.status = "WORDCLOUD";
+          if (!room.wordCloud) room.wordCloud = {};
+          if (!room.wordCloud[qIndex]) room.wordCloud[qIndex] = {};
+          await this.saveRoomState(room);
+          this.triggerBotsWordCloud(qIndex);
+        } else {
+          room.status = "QUESTION";
+          room.timeLeft = qObj.timeLimit || 20;
+          await this.saveRoomState(room);
+          this.startHostTimer();
+          this.triggerBotsAnswer();
+        }
+      },
+
+      startHostTimer() {
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        state.timerInterval = setInterval(async () => {
+          const room = state.roomData;
+          if (!room || room.status !== "QUESTION") {
+            clearInterval(state.timerInterval);
+            return;
+          }
+          room.timeLeft = Math.max(0, room.timeLeft - 1);
+          document.getElementById("hostTimerCircle").textContent = room.timeLeft;
+          sound.beep(440, 0.05, "sine");
+
+          const playersList = Object.values(room.players || {});
+          const answeredList = playersList.filter(p => p.lastChoice !== null && p.lastChoice !== undefined);
+          if (room.timeLeft <= 0 || (playersList.length > 0 && answeredList.length === playersList.length)) {
+            clearInterval(state.timerInterval);
+            await this.revealAnswer();
+          }
+        }, 1000);
+      },
+
+      async revealAnswer() {
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        const room = state.roomData;
+        if (!room) return;
+        room.status = "REVEAL";
+        sound.playReveal();
+        await this.saveRoomState(room);
+      },
+
+      async addSimulatedBots() {
+        const room = state.roomData;
+        if (!room) return;
+        const botNames = ["第一組-AI先鋒", "王小明(行銷部)", "林美玲(品牌組)", "陳總監-數位轉型", "張凱文-電商組"];
+        botNames.forEach((name, idx) => {
+          const bid = "bot_" + idx + "_" + Math.floor(Math.random() * 999);
+          room.players[bid] = {
+            id: bid,
+            name,
+            score: 0,
+            streak: 0,
+            lastChoice: null,
+            lastPoints: 0,
+            myWords: [],
+            isBot: true
+          };
+        });
+
+        const sampleQuestions = [
+          { text: "請問 TONY 老師：中小企業導入生成式 AI 時，如何避免內部機密資料外洩？", author: "陳總監-數位轉型", likes: 6 },
+          { text: "文字雲跟四選一搶答結合真的超有感！請問提示詞 3P 框架有推薦的起手式模板嗎？", author: "匿名學員", likes: 4 }
+        ];
+        if (!room.qaList) room.qaList = [];
+        if (room.qaList.length === 0) {
+          sampleQuestions.forEach((sq, i) => {
+            room.qaList.push({
+              id: "qa_bot_" + i + "_" + Date.now(),
+              text: sq.text,
+              author: sq.author,
+              likes: sq.likes,
+              answered: false,
+              createdAt: Date.now() - i * 10000
+            });
+          });
+        }
+
+        sound.beep(660, 0.1, "triangle");
+        await this.saveRoomState(room);
+
+        if (room.status === "QUESTION") this.triggerBotsAnswer();
+        if (room.status === "WORDCLOUD") this.triggerBotsWordCloud(room.currentQ);
+      },
+
+      triggerBotsAnswer() {
+        const room = state.roomData;
+        if (!room || room.status !== "QUESTION") return;
+        const qObj = room.questions[room.currentQ];
+
+        Object.values(room.players || {}).forEach(p => {
+          if (p.isBot && (p.lastChoice === null || p.lastChoice === undefined)) {
+            const delay = 1200 + Math.random() * 4500;
+            setTimeout(async () => {
+              if (!state.roomData || state.roomData.status !== "QUESTION") return;
+              const isCorrect = Math.random() < 0.72;
+              const choice = isCorrect ? qObj.answer : Math.floor(Math.random() * 4);
+              await this.recordPlayerAnswer(p.id, choice);
+            }, delay);
+          }
+        });
+      },
+
+      triggerBotsWordCloud(qIndex) {
+        const room = state.roomData;
+        if (!room || room.status !== "WORDCLOUD") return;
+        const qObj = room.questions[qIndex];
+        const pool = qObj.sampleWords || ["AI賦能", "提示詞工程", "提高效率", "品牌行銷", "自動化流程", "內容生成", "數據洞察"];
+
+        Object.values(room.players || {}).forEach((p, idx) => {
+          if (p.isBot) {
+            [1, 2].forEach(round => {
+              setTimeout(async () => {
+                if (!state.roomData || state.roomData.status !== "WORDCLOUD") return;
+                const randomWord = pool[(idx + round * 2) % pool.length];
+                await this.recordWordCloudSubmission(p.id, randomWord);
+              }, 900 * round + Math.random() * 2200);
+            });
+          }
+        });
+      },
+
+      openPlayerPreviewWindow() {
+        if (!state.pin) return;
+        const url = `${window.location.origin}${window.location.pathname}?pin=${state.pin}`;
+        window.open(url, "_blank", "width=430,height=780");
+      },
+
+      // ==================== 學員端 (PLAYER) 邏輯 ====================
+      async joinRoomAsPlayer() {
+        const pin = document.getElementById("inputPin").value.trim();
+        const name = document.getElementById("inputNickname").value.trim();
+        if (!pin || !name) {
+          alert("請輸入 4 碼遊戲 PIN 碼與您的暱稱！");
+          return;
+        }
+
+        state.role = "PLAYER";
+        state.pin = pin;
+        state.playerName = name;
+
+        let existingRoom = null;
+        const localRaw = localStorage.getItem("tonyquiz_room_" + pin);
+        if (localRaw) existingRoom = JSON.parse(localRaw);
+
+        if (!existingRoom && state.mode === "FIREBASE" && state.db) {
+          try {
+            const snap = await getDoc(doc(state.db, "tonyquiz_rooms", pin));
+            if (snap.exists()) existingRoom = snap.data();
+          } catch (e) {}
+        }
+
+        if (!existingRoom) {
+          alert("找不到該房間 PIN 碼 (" + pin + ")，請確認講師已啟動房間！");
+          return;
+        }
+
+        if (!existingRoom.players) existingRoom.players = {};
+        existingRoom.players[state.playerId] = {
+          id: state.playerId,
+          name: state.playerName,
+          score: 0,
+          streak: 0,
+          lastChoice: null,
+          lastPoints: 0,
+          myWords: [],
+          isBot: false
+        };
+
+        this.switchView("view-player");
+        document.getElementById("playerPinBadge").textContent = state.pin;
+        document.getElementById("playerNameBadge").textContent = state.playerName;
+
+        this.subscribeRoom(state.pin);
+        sound.playSuccess();
+        await this.saveRoomState(existingRoom);
+        authApp.appendUserHistory(`參與互動房間 PIN: ${state.pin} (暱稱: ${state.playerName})`);
+      },
+
+      switchPlayerTab(tab) {
+        state.playerTab = tab;
+        const tabGame = document.getElementById("player-tab-game");
+        const tabQa = document.getElementById("player-tab-qa");
+        const btnGame = document.getElementById("navBtnGame");
+        const btnQa = document.getElementById("navBtnQa");
+
+        if (tab === "GAME") {
+          tabGame.classList.remove("hidden");
+          tabQa.classList.add("hidden");
+          btnGame.className = "py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs flex items-center justify-center gap-1.5 transition";
+          btnQa.className = "py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition";
+        } else {
+          tabGame.classList.add("hidden");
+          tabQa.classList.remove("hidden");
+          btnQa.className = "py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs flex items-center justify-center gap-1.5 transition";
+          btnGame.className = "py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition";
+        }
+      },
+
+      async submitPlayerAnswer(choiceIndex) {
+        if (!state.roomData || state.roomData.status !== "QUESTION") return;
+        sound.beep(587.33, 0.1, "triangle");
+        await this.recordPlayerAnswer(state.playerId, choiceIndex);
+      },
+
+      async recordPlayerAnswer(playerId, choiceIndex) {
+        const room = state.roomData;
+        if (!room || room.status !== "QUESTION") return;
+        const player = room.players?.[playerId];
+        if (!player || (player.lastChoice !== null && player.lastChoice !== undefined)) return;
+
+        const qObj = room.questions[room.currentQ];
+        const elapsedSec = (Date.now() - room.questionStartTime) / 1000;
+        const limit = qObj.timeLimit || 20;
+        const speedRatio = Math.max(0.2, Math.min(1, 1 - elapsedSec / limit));
+
+        player.lastChoice = choiceIndex;
+        if (choiceIndex === qObj.answer) {
+          const pts = Math.round(500 + 500 * speedRatio);
+          player.lastPoints = pts;
+          player.score += pts;
+          player.streak = (player.streak || 0) + 1;
+        } else {
+          player.lastPoints = 0;
+          player.streak = 0;
+        }
+
+        await this.saveRoomState(room);
+      },
+
+      async submitPlayerWord() {
+        const input = document.getElementById("playerWcInput");
+        const word = input.value.trim();
+        if (!word) return;
+        input.value = "";
+        sound.beep(659.25, 0.1, "triangle");
+        await this.recordWordCloudSubmission(state.playerId, word);
+      },
+
+      async recordWordCloudSubmission(playerId, rawWord) {
+        const room = state.roomData;
+        if (!room || room.status !== "WORDCLOUD") return;
+        const qIndex = room.currentQ;
+        if (!room.wordCloud) room.wordCloud = {};
+        if (!room.wordCloud[qIndex]) room.wordCloud[qIndex] = {};
+
+        const cleanWord = rawWord.substring(0, 12);
+        room.wordCloud[qIndex][cleanWord] = (room.wordCloud[qIndex][cleanWord] || 0) + 1;
+
+        const player = room.players?.[playerId];
+        if (player) {
+          player.score = (player.score || 0) + 200;
+          if (!player.myWords) player.myWords = [];
+          player.myWords.push(cleanWord);
+        }
+
+        await this.saveRoomState(room);
+      },
+
+      async submitPlayerQuestion() {
+        const input = document.getElementById("playerQaInput");
+        const isAnon = document.getElementById("playerQaAnonCheck").checked;
+        const text = input.value.trim();
+        if (!text || !state.roomData) return;
+
+        input.value = "";
+        const room = state.roomData;
+        if (!room.qaList) room.qaList = [];
+
+        room.qaList.push({
+          id: "qa_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
+          text,
+          author: isAnon ? "匿名學員" : (state.playerName || "學員"),
+          likes: 1,
+          answered: false,
+          createdAt: Date.now()
+        });
+
+        sound.beep(523.25, 0.1, "triangle");
+        await this.saveRoomState(room);
+      },
+
+      async upvoteQuestion(qaId) {
+        const room = state.roomData;
+        if (!room || !room.qaList) return;
+        const item = room.qaList.find(q => q.id === qaId);
+        if (item) {
+          item.likes = (item.likes || 0) + 1;
+          sound.beep(659.25, 0.08, "sine");
+          await this.saveRoomState(room);
+        }
+      },
+
+      async toggleQaAnswered(qaId) {
+        const room = state.roomData;
+        if (!room || !room.qaList) return;
+        const item = room.qaList.find(q => q.id === qaId);
+        if (item) {
+          item.answered = !item.answered;
+          await this.saveRoomState(room);
+        }
+      },
+
+      // ==================== 狀態同步與畫面渲染 ====================
+      onRoomStateUpdated() {
+        const room = state.roomData;
+        if (!room) return;
+        if (state.role === "HOST") this.renderHostUI();
+        if (state.role === "PLAYER") this.renderPlayerUI();
+      },
+
+      renderHostUI() {
+        const room = state.roomData;
+        const playersArr = Object.values(room.players || {});
+        document.getElementById("hostPlayerCount").textContent = playersArr.length;
+
+        const qaList = room.qaList || [];
+        document.getElementById("hostQaCountBadge").textContent = qaList.length;
+
+        ["host-stage-lobby", "host-stage-question", "host-stage-wordcloud", "host-stage-leaderboard", "host-stage-qawall"].forEach(id => {
+          document.getElementById(id).classList.add("hidden");
+        });
+
+        if (state.hostQaWallOpen) {
+          document.getElementById("host-stage-qawall").classList.remove("hidden");
+          this.renderHostQaList(qaList);
+          return;
+        }
+
+        const nextBtnText = document.getElementById("btnHostNextText");
+        const qObj = room.questions[room.currentQ] || room.questions[0];
+
+        if (room.status === "LOBBY") {
+          document.getElementById("host-stage-lobby").classList.remove("hidden");
+          nextBtnText.textContent = "開始第一題";
+
+          const grid = document.getElementById("hostLobbyPlayersGrid");
+          if (playersArr.length === 0) {
+            grid.innerHTML = `<p class="text-slate-500 text-sm m-auto">尚無學員加入，點擊上方「+ 加入 5 位模擬學員」可立即體驗搶答、文字雲與提問牆效果！</p>`;
+          } else {
+            grid.innerHTML = playersArr.map(p => `
+              <div class="animate-pop px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 font-bold text-sm flex items-center gap-2 shadow">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>${p.name}</span>
+              </div>
+            `).join("");
+          }
+        } else if (room.status === "QUESTION" || room.status === "REVEAL") {
+          document.getElementById("host-stage-question").classList.remove("hidden");
+          document.getElementById("hostQIndexBadge").textContent = `QUESTION ${room.currentQ + 1} / ${room.questions.length}`;
+          document.getElementById("hostQuestionText").textContent = qObj.q;
+
+          const answeredCount = playersArr.filter(p => p.lastChoice !== null && p.lastChoice !== undefined).length;
+          document.getElementById("hostAnsweredCount").textContent = answeredCount;
+
+          qObj.options.forEach((optText, idx) => {
+            document.getElementById("hostOptText" + idx).textContent = optText;
+            const card = document.getElementById("hostOptCard" + idx);
+            const check = document.getElementById("hostOptCheck" + idx);
+
+            if (room.status === "REVEAL") {
+              if (idx === qObj.answer) {
+                card.classList.remove("opacity-30");
+                check.classList.remove("hidden");
+              } else {
+                card.classList.add("opacity-30");
+                check.classList.add("hidden");
+              }
+            } else {
+              card.classList.remove("opacity-30");
+              check.classList.add("hidden");
+            }
+          });
+
+          if (room.status === "QUESTION") {
+            nextBtnText.textContent = "提前揭曉答案";
+            document.getElementById("hostAnsweringPrompt").classList.remove("hidden");
+            document.getElementById("hostRevealChartBox").classList.add("hidden");
+          } else {
+            nextBtnText.textContent = "查看積分英雄榜";
+            document.getElementById("hostAnsweringPrompt").classList.add("hidden");
+            document.getElementById("hostRevealChartBox").classList.remove("hidden");
+            document.getElementById("hostExplanationText").textContent = qObj.explanation || "掌握核心關鍵，持續累積連勝積分！";
+
+            const counts = [0, 0, 0, 0];
+            playersArr.forEach(p => {
+              if (p.lastChoice >= 0 && p.lastChoice <= 3) counts[p.lastChoice]++;
+            });
+            const maxCount = Math.max(1, ...counts);
+            counts.forEach((c, idx) => {
+              document.getElementById("barCount" + idx).textContent = c + " 人";
+              const pct = Math.max(12, Math.round((c / maxCount) * 100));
+              document.getElementById("barFill" + idx).style.height = pct + "%";
+            });
+          }
+        } else if (room.status === "WORDCLOUD") {
+          document.getElementById("host-stage-wordcloud").classList.remove("hidden");
+          nextBtnText.textContent = "結束投遞 · 查看排行榜";
+          document.getElementById("hostWcIndexBadge").textContent = `WORD CLOUD ${room.currentQ + 1} / ${room.questions.length}`;
+          document.getElementById("hostWcQuestionText").textContent = qObj.q;
+
+          const wordMap = (room.wordCloud && room.wordCloud[room.currentQ]) || {};
+          const entries = Object.entries(wordMap);
+          const totalSubmissions = entries.reduce((acc, [, count]) => acc + count, 0);
+          document.getElementById("hostWcTotalWords").textContent = totalSubmissions;
+
+          const canvas = document.getElementById("hostWordCloudCanvas");
+          if (entries.length === 0) {
+            canvas.innerHTML = `<p class="text-slate-500 text-sm">等待學員從手機輸入關鍵字...（您也可點擊上方「+ 加入 5 位模擬學員」自動產生熱絡詞雲）</p>`;
+          } else {
+            const palette = [
+              "text-pink-400 border-pink-500/40 bg-pink-500/10",
+              "text-indigo-300 border-indigo-500/40 bg-indigo-500/10",
+              "text-amber-300 border-amber-500/40 bg-amber-500/10",
+              "text-emerald-300 border-emerald-500/40 bg-emerald-500/10",
+              "text-sky-300 border-sky-500/40 bg-sky-500/10"
+            ];
+            canvas.innerHTML = entries.map(([word, count], idx) => {
+              const sizeRem = Math.min(3.0, 1.05 + (count - 1) * 0.45);
+              const colorCls = palette[idx % palette.length];
+              return `
+                <div class="word-tag px-4 py-2 rounded-2xl border font-black shadow-lg flex items-center gap-2 ${colorCls}"
+                     style="font-size: ${sizeRem}rem; animation-delay: ${(idx % 5) * 0.15}s">
+                  <span>${word}</span>
+                  ${count > 1 ? `<span class="text-xs px-2 py-0.5 rounded-full bg-black/40 font-mono">×${count}</span>` : ""}
+                </div>
+              `;
+            }).join("");
+          }
+        } else if (room.status === "LEADERBOARD" || room.status === "PODIUM") {
+          document.getElementById("host-stage-leaderboard").classList.remove("hidden");
+          const isFinal = room.status === "PODIUM";
+          document.getElementById("leaderboardSubtitle").textContent = isFinal ? "🏆 FINAL PODIUM 最終總決賽" : "即時戰況排行";
+          document.getElementById("leaderboardTitle").textContent = isFinal ? "恭喜全場總冠軍誕生！" : "TOP 5 課堂互動英雄榜";
+          nextBtnText.textContent = isFinal
+            ? "重新開啟新局"
+            : (room.currentQ + 1 < room.questions.length ? "進入下一題" : "揭曉最終頒獎台");
+
+          const sorted = [...playersArr].sort((a, b) => b.score - a.score).slice(0, 5);
+          const listEl = document.getElementById("hostLeaderboardList");
+          const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"];
+
+          listEl.innerHTML = sorted.map((p, idx) => `
+            <div class="animate-pop bg-slate-950 border ${idx === 0 ? "border-amber-400/60 bg-amber-500/10" : "border-slate-800"} rounded-2xl p-4 flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <span class="text-2xl">${medals[idx] || idx + 1}</span>
+                <div>
+                  <div class="font-black text-lg text-white">${p.name}</div>
+                  <div class="text-xs text-slate-400">${p.streak >= 2 ? `🔥 連續答對 ${p.streak} 題` : "持續參與互動中"}</div>
+                </div>
+              </div>
+              <div class="text-2xl font-black text-amber-400">${p.score} <span class="text-xs font-normal text-slate-400">分</span></div>
+            </div>
+          `).join("");
+        }
+      },
+
+      renderHostQaList(qaList) {
+        const container = document.getElementById("hostQaListContainer");
+        if (!qaList || qaList.length === 0) {
+          container.innerHTML = `<p class="text-slate-500 text-sm text-center py-12">目前尚無學員提問。學員可隨時在手機底部切換至「提問牆」匿名發問或按讚！</p>`;
+          return;
+        }
+        const sorted = [...qaList].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        container.innerHTML = sorted.map(item => `
+          <div class="bg-slate-950 border ${item.answered ? "border-slate-800 opacity-60" : "border-emerald-500/30"} rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div class="space-y-1 flex-1 selectable-text">
+              <div class="flex items-center gap-2 text-xs text-slate-400">
+                <span class="font-bold text-emerald-400">${item.author}</span>
+                <span>·</span>
+                <span class="font-mono">${new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                ${item.answered ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">✓ 已回覆</span>` : ""}
+              </div>
+              <p class="text-base sm:text-lg font-bold text-white">${item.text}</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-black text-sm flex items-center gap-1.5">
+                <span>👍</span>
+                <span>${item.likes || 0}</span>
+              </div>
+              <button onclick="app.toggleQaAnswered('${item.id}')" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
+                ${item.answered ? "重開" : "標記已答"}
+              </button>
+            </div>
+          </div>
+        `).join("");
+      },
+
+      renderPlayerUI() {
+        const room = state.roomData;
+        const me = room.players?.[state.playerId];
+        if (!me) return;
+
+        document.getElementById("playerScoreBadge").textContent = `${me.score} 分`;
+        const streakEl = document.getElementById("playerStreakBadge");
+        if (me.streak >= 2) {
+          streakEl.classList.remove("hidden");
+          streakEl.textContent = `🔥 ${me.streak} 連勝`;
+        } else {
+          streakEl.classList.add("hidden");
+        }
+
+        const qaList = room.qaList || [];
+        document.getElementById("playerQaBadge").textContent = qaList.length;
+        this.renderPlayerQaList(qaList);
+
+        ["player-state-waiting", "player-state-buttons", "player-state-wordcloud", "player-state-feedback"].forEach(id => {
+          document.getElementById(id).classList.add("hidden");
+        });
+
+        const qObj = room.questions[room.currentQ] || room.questions[0];
+
+        if (room.status === "LOBBY") {
+          document.getElementById("player-state-waiting").classList.remove("hidden");
+        } else if (room.status === "QUESTION") {
+          if (me.lastChoice === null || me.lastChoice === undefined) {
+            document.getElementById("player-state-buttons").classList.remove("hidden");
+            qObj.options.forEach((optText, idx) => {
+              document.getElementById("playerBtnHint" + idx).textContent = optText;
+            });
+          } else {
+            const fb = document.getElementById("player-state-feedback");
+            fb.classList.remove("hidden");
+            fb.className = "flex-1 rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-indigo-950 border border-indigo-500/40";
+            document.getElementById("playerFeedbackIcon").textContent = "⚡";
+            document.getElementById("playerFeedbackTitle").textContent = "答案已送出！";
+            document.getElementById("playerFeedbackSub").textContent = "等待大螢幕倒數結束揭曉成績...";
+          }
+        } else if (room.status === "WORDCLOUD") {
+          document.getElementById("player-state-wordcloud").classList.remove("hidden");
+          document.getElementById("playerWcTitle").textContent = qObj.q;
+          const myWordsEl = document.getElementById("playerMyWordsTags");
+          if (me.myWords && me.myWords.length > 0) {
+            myWordsEl.innerHTML = me.myWords.map(w => `
+              <span class="px-2.5 py-1 rounded-lg bg-pink-500/20 border border-pink-500/40 text-pink-200 text-xs font-bold">${w}</span>
+            `).join("");
+          }
+        } else if (room.status === "REVEAL") {
+          const fb = document.getElementById("player-state-feedback");
+          fb.classList.remove("hidden");
+          const isCorrect = me.lastChoice === qObj.answer;
+          if (isCorrect) {
+            fb.className = "flex-1 rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-emerald-600 text-white shadow-2xl";
+            document.getElementById("playerFeedbackIcon").textContent = "🎉";
+            document.getElementById("playerFeedbackTitle").textContent = "答對了！太神啦！";
+            document.getElementById("playerFeedbackSub").textContent = `本題獲得 +${me.lastPoints} 速度積分`;
+          } else {
+            fb.className = "flex-1 rounded-3xl p-8 flex flex-col items-center justify-center text-center bg-rose-700 text-white shadow-2xl";
+            document.getElementById("playerFeedbackIcon").textContent = "💡";
+            document.getElementById("playerFeedbackTitle").textContent = "差一點點！";
+            document.getElementById("playerFeedbackSub").textContent = `正確答案是：${qObj.options[qObj.answer]}`;
+          }
+        } else if (room.status === "LEADERBOARD" || room.status === "PODIUM") {
+          document.getElementById("player-state-waiting").classList.remove("hidden");
+          document.getElementById("playerWaitingTitle").textContent =
+            room.status === "PODIUM" ? `🏆 最終總積分：${me.score} 分` : "請看大螢幕積分英雄榜！";
+          document.getElementById("playerWaitingSub").textContent = "準備迎接下一階段互動...";
+        }
+      },
+
+      renderPlayerQaList(qaList) {
+        const el = document.getElementById("playerQaList");
+        if (!qaList || qaList.length === 0) {
+          el.innerHTML = `<p class="text-slate-500 text-xs text-center py-8">目前尚無提問，成為第一位發問的同學吧！</p>`;
+          return;
+        }
+        const sorted = [...qaList].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        el.innerHTML = sorted.map(item => `
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+            <div class="flex-1 selectable-text">
+              <div class="text-[11px] text-emerald-400 font-bold mb-0.5">${item.author}</div>
+              <div class="text-xs sm:text-sm font-bold text-white leading-snug">${item.text}</div>
+            </div>
+            <button onclick="app.upvoteQuestion('${item.id}')" class="px-3 py-2 rounded-xl bg-slate-900 hover:bg-emerald-500/20 border border-slate-700 text-emerald-300 font-black text-xs flex items-center gap-1 shrink-0 active:scale-95 transition">
+              <span>❤️</span>
+              <span>${item.likes || 0}</span>
+            </button>
+          </div>
+        `).join("");
+      },
+
+      // ==================== Gemini AI 課堂互動智能輔助 ====================
+      async summarizeWordCloudWithAI() {
+        const room = state.roomData;
+        if (!room) return;
+        const wordMap = (room.wordCloud && room.wordCloud[room.currentQ]) || {};
+        const entries = Object.entries(wordMap);
+        if (entries.length === 0) {
+          alert("目前尚無文字雲詞彙可供 AI 收斂！");
+          return;
+        }
+        const box = document.getElementById("hostWcAiSummaryBox");
+        const textEl = document.getElementById("hostWcAiSummaryText");
+        box.classList.remove("hidden");
+        textEl.textContent = "正在透過 Gemini AI 為全班關鍵字進行共識歸納...";
+
+        const wordsSummary = entries.map(([w, c]) => `${w}(${c}次)`).join("、");
+        const qText = room.questions[room.currentQ].q;
+        const prompt = `你現在是企業培訓顧問 TONY 楊文澤老師的課堂 AI 助教。
+課堂問題：「${qText}」
+全班學員投遞的即時文字雲統計為：${wordsSummary}。
+請用繁體中文、熱情專業的口吻，在 90 字以內歸納出全班的「三大核心共識或痛點趨勢」，讓講師能直接在台上做精彩總結！`;
+
+        try {
+          const reply = await callGeminiAPI(prompt, false);
+          if (reply) textEl.textContent = reply.trim();
+        } catch (err) {
+          textEl.textContent = "AI 摘要失敗：" + err.message;
+        }
+      },
+
+      async summarizeQaWithAI() {
+        const room = state.roomData;
+        if (!room || !room.qaList || room.qaList.length === 0) {
+          alert("目前提問牆尚無問題可供 AI 收斂！");
+          return;
+        }
+        const box = document.getElementById("hostQaAiSummaryBox");
+        const textEl = document.getElementById("hostQaAiSummaryText");
+        box.classList.remove("hidden");
+        textEl.textContent = "正在透過 Gemini AI 統整全班提問焦點...";
+
+        const qListStr = room.qaList.map((q, i) => `${i + 1}. (${q.likes}讚) ${q.text}`).join("\n");
+        const prompt = `你現在是 TONY 楊文澤老師課堂上的 AI 助教。以下是學員在 Slido 提問牆提出的問題：
+${qListStr}
+請用繁體中文在 100 字以內，幫講師快速歸納出「全班最關注的 2 個核心問題方向」並給出簡短回應切入點建議。`;
+
+        try {
+          const reply = await callGeminiAPI(prompt, false);
+          if (reply) textEl.textContent = reply.trim();
+        } catch (err) {
+          textEl.textContent = "AI 統整失敗：" + err.message;
+        }
+      },
+
+      editorDraftQuestions: [],
+      editorViewMode: "VISUAL",
+
+      toggleQuizEditorModal(show) {
+        const modal = document.getElementById("modal-quiz-editor");
+        if (show) {
+          this.editorDraftQuestions = JSON.parse(JSON.stringify(state.questions));
+          document.getElementById("questionsJsonTextarea").value = JSON.stringify(this.editorDraftQuestions, null, 2);
+          this.renderVisualQuestionsEditor();
+          modal.classList.remove("hidden");
+          lucide.createIcons();
+        } else {
+          modal.classList.add("hidden");
+        }
+      },
+
+      switchEditorMode(mode) {
+        this.editorViewMode = mode;
+        const visualEl = document.getElementById("visualQuestionsList");
+        const jsonEl = document.getElementById("jsonEditorContainer");
+        const tabVisual = document.getElementById("tabEditorVisual");
+        const tabJson = document.getElementById("tabEditorJson");
+
+        if (mode === "VISUAL") {
+          try {
+            const parsed = JSON.parse(document.getElementById("questionsJsonTextarea").value);
+            if (Array.isArray(parsed)) this.editorDraftQuestions = parsed;
+          } catch (e) {}
+          this.renderVisualQuestionsEditor();
+          visualEl.classList.remove("hidden");
+          jsonEl.classList.add("hidden");
+          tabVisual.className = "px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-black transition";
+          tabJson.className = "px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition";
+        } else {
+          document.getElementById("questionsJsonTextarea").value = JSON.stringify(this.editorDraftQuestions, null, 2);
+          visualEl.classList.add("hidden");
+          jsonEl.classList.remove("hidden");
+          tabJson.className = "px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-black transition";
+          tabVisual.className = "px-3.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition";
+        }
+      },
+
+      onQuizModeChange() {
+        const mode = document.getElementById("aiQuizModeSelect").value;
+        const customBox = document.getElementById("aiCustomRatioBox");
+        const totalBox = document.getElementById("aiTotalCountBox");
+        const timeLimit = Number(document.getElementById("aiTimeLimitSelect")?.value || 20);
+
+        if (mode === "CUSTOM_RATIO") {
+          customBox.classList.remove("hidden");
+          totalBox.classList.add("opacity-50", "pointer-events-none");
+          const qCount = Math.max(0, Number(document.getElementById("aiCustomQuizCount")?.value || 4));
+          const wCount = Math.max(0, Number(document.getElementById("aiCustomWcCount")?.value || 1));
+          if (qCount + wCount > 0) {
+            this.rebuildActiveDeckByConfig("CUSTOM_RATIO", qCount + wCount, timeLimit, qCount, wCount);
+          }
+        } else {
+          customBox.classList.add("hidden");
+          totalBox.classList.remove("opacity-50", "pointer-events-none");
+          const totalCount = Math.max(1, Math.min(20, Number(document.getElementById("aiTotalCountInput")?.value || 5)));
+          const landingMode = document.getElementById("landingQuizModeSelect");
+          if (landingMode) landingMode.value = mode;
+          this.rebuildActiveDeckByConfig(mode, totalCount, timeLimit);
+        }
+      },
+
+      applyQuickPreset(mode, count) {
+        const timeLimit = Number(document.getElementById("aiTimeLimitSelect")?.value || 20);
+        const modalMode = document.getElementById("aiQuizModeSelect");
+        const modalCount = document.getElementById("aiTotalCountInput");
+        const landingMode = document.getElementById("landingQuizModeSelect");
+        const landingCount = document.getElementById("landingTotalCountInput");
+
+        if (modalMode) modalMode.value = mode;
+        if (modalCount) modalCount.value = count;
+        if (landingMode && mode !== "CUSTOM_RATIO") landingMode.value = mode;
+        if (landingCount) landingCount.value = count;
+
+        const customBox = document.getElementById("aiCustomRatioBox");
+        const totalBox = document.getElementById("aiTotalCountBox");
+        if (customBox) customBox.classList.add("hidden");
+        if (totalBox) totalBox.classList.remove("opacity-50", "pointer-events-none");
+
+        // 立即重組題庫並套用！
+        this.rebuildActiveDeckByConfig(mode, count, timeLimit);
+
+        const statusEl = document.getElementById("aiGenStatus");
+        if (statusEl) {
+          statusEl.classList.remove("hidden");
+          const modeLabel = mode === "ALL_KAHOOT" ? "全部 Kahoot 四選一搶答" : mode === "ALL_WORDCLOUD" ? "全部 Mentimeter 文字雲" : "經典混合互動";
+          statusEl.textContent = `✅ 已立即切換為【${modeLabel} · 共 ${count} 題】並更新下方題庫！您也可以輸入主題讓 Gemini AI 為您重新撰寫專屬題目。`;
+        }
+      },
+
+      renderVisualQuestionsEditor() {
+        const container = document.getElementById("visualQuestionsList");
+        const list = this.editorDraftQuestions || [];
+        const wcCount = list.filter(q => q.type === "wordcloud").length;
+        const qzCount = list.length - wcCount;
+
+        document.getElementById("editorVisualCount").textContent = list.length;
+        document.getElementById("editorFooterSummary").textContent =
+          `目前共 ${list.length} 題（🎯 Kahoot 搶答 ${qzCount} 題 ＋ ☁️ 文字雲 ${wcCount} 題）`;
+        document.getElementById("questionsJsonTextarea").value = JSON.stringify(list, null, 2);
+
+        if (list.length === 0) {
+          container.innerHTML = `<div class="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl">目前沒有題目，請點擊上方「+ 新增 Kahoot 搶答題」或使用 AI 自動生成！</div>`;
+          return;
+        }
+
+        container.innerHTML = list.map((item, idx) => {
+          const isWc = item.type === "wordcloud";
+          const opts = item.options || ["選項 A", "選項 B", "選項 C", "選項 D"];
+          return `
+            <div class="bg-slate-950 border ${isWc ? "border-pink-500/30" : "border-indigo-500/30"} rounded-2xl p-4 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-lg bg-slate-800 text-white font-black text-xs">第 ${idx + 1} 題</span>
+                  <select onchange="app.updateDraftQuestionType(${idx}, this.value)"
+                    class="px-2.5 py-1 rounded-lg text-xs font-black border ${
+                      isWc ? "bg-pink-500/20 text-pink-300 border-pink-500/40" : "bg-indigo-500/20 text-indigo-300 border-indigo-500/40"
+                    }">
+                    <option value="quiz" ${!isWc ? "selected" : ""}>🎯 Kahoot 四選一搶答</option>
+                    <option value="wordcloud" ${isWc ? "selected" : ""}>☁️ Mentimeter 即時文字雲</option>
+                  </select>
+                  ${
+                    !isWc
+                      ? `<div class="flex items-center gap-1 text-xs text-slate-400">
+                          <span>秒數:</span>
+                          <input type="number" min="5" max="120" value="${item.timeLimit || 20}"
+                            onchange="app.updateDraftField(${idx}, 'timeLimit', Number(this.value))"
+                            class="w-14 px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-center font-bold text-amber-300 selectable-text" />
+                        </div>`
+                      : ""
+                  }
+                </div>
+
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="app.moveDraftQuestion(${idx}, -1)" ${idx === 0 ? "disabled" : ""}
+                    class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs">↑ 上移</button>
+                  <button type="button" onclick="app.moveDraftQuestion(${idx}, 1)" ${idx === list.length - 1 ? "disabled" : ""}
+                    class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs">↓ 下移</button>
+                  <button type="button" onclick="app.removeDraftQuestion(${idx})"
+                    class="px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 text-xs font-bold">刪除</button>
+                </div>
+              </div>
+
+              <div>
+                <input type="text" value="${(item.q || "").replace(/"/g, "&quot;")}"
+                  oninput="app.updateDraftField(${idx}, 'q', this.value)"
+                  placeholder="請輸入題目內容..."
+                  class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm font-bold text-white selectable-text" />
+              </div>
+
+              ${
+                !isWc
+                  ? `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      ${[0, 1, 2, 3].map(optIdx => {
+                        const colors = ["border-rose-500/40 text-rose-300", "border-sky-500/40 text-sky-300", "border-amber-500/40 text-amber-300", "border-emerald-500/40 text-emerald-300"];
+                        const shapes = ["▲ 紅", "◆ 藍", "● 黃", "■ 綠"];
+                        return `
+                          <div class="flex items-center gap-2 bg-slate-900/90 border ${colors[optIdx]} rounded-xl px-3 py-1.5">
+                            <input type="radio" name="correct_q_${idx}" ${item.answer === optIdx ? "checked" : ""}
+                              onchange="app.updateDraftField(${idx}, 'answer', ${optIdx})"
+                              title="設為正確答案" class="accent-emerald-400 cursor-pointer" />
+                            <span class="text-[11px] font-black shrink-0">${shapes[optIdx]}</span>
+                            <input type="text" value="${(opts[optIdx] || "").replace(/"/g, "&quot;")}"
+                              oninput="app.updateDraftOption(${idx}, ${optIdx}, this.value)"
+                              class="w-full bg-transparent text-xs text-white focus:outline-none selectable-text" />
+                          </div>
+                        `;
+                      }).join("")}
+                    </div>
+                  `
+                  : `
+                    <div class="text-xs text-slate-400 flex items-center gap-2">
+                      <span class="shrink-0 text-pink-300 font-bold">預設模擬詞彙（逗號分隔）：</span>
+                      <input type="text" value="${(item.sampleWords || []).join(", ").replace(/"/g, "&quot;")}"
+                        oninput="app.updateDraftSampleWords(${idx}, this.value)"
+                        class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 selectable-text" />
+                    </div>
+                  `
+              }
+            </div>
+          `;
+        }).join("");
+      },
+
+      updateDraftQuestionType(idx, newType) {
+        const q = this.editorDraftQuestions[idx];
+        if (!q) return;
+        q.type = newType;
+        if (newType === "quiz") {
+          if (!Array.isArray(q.options) || q.options.length < 4) {
+            q.options = ["選項 A", "選項 B", "選項 C", "選項 D"];
+          }
+          if (typeof q.answer !== "number") q.answer = 0;
+          if (!q.timeLimit) q.timeLimit = Number(document.getElementById("aiTimeLimitSelect")?.value || 20);
+        } else {
+          if (!Array.isArray(q.sampleWords) || q.sampleWords.length === 0) {
+            q.sampleWords = ["創新思維", "提高效率", "數據驅動", "客戶體驗", "AI自動化"];
+          }
+        }
+        this.renderVisualQuestionsEditor();
+      },
+
+      updateDraftField(idx, field, val) {
+        if (!this.editorDraftQuestions[idx]) return;
+        this.editorDraftQuestions[idx][field] = val;
+        document.getElementById("questionsJsonTextarea").value = JSON.stringify(this.editorDraftQuestions, null, 2);
+      },
+
+      updateDraftOption(idx, optIdx, val) {
+        const q = this.editorDraftQuestions[idx];
+        if (!q) return;
+        if (!Array.isArray(q.options)) q.options = ["", "", "", ""];
+        q.options[optIdx] = val;
+        document.getElementById("questionsJsonTextarea").value = JSON.stringify(this.editorDraftQuestions, null, 2);
+      },
+
+      updateDraftSampleWords(idx, rawStr) {
+        const q = this.editorDraftQuestions[idx];
+        if (!q) return;
+        q.sampleWords = rawStr.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+        document.getElementById("questionsJsonTextarea").value = JSON.stringify(this.editorDraftQuestions, null, 2);
+      },
+
+      addBlankQuestion(type = "quiz") {
+        const defaultTime = Number(document.getElementById("aiTimeLimitSelect")?.value || 20);
+        if (type === "wordcloud") {
+          this.editorDraftQuestions.push({
+            type: "wordcloud",
+            q: `【文字雲互動】請輸入您對本議題最有感的一個關鍵字？`,
+            sampleWords: ["提示詞工程", "流程自動化", "數據洞察", "品牌定位", "創新突破"]
+          });
+        } else {
+          this.editorDraftQuestions.push({
+            type: "quiz",
+            q: `【四選一搶答】請輸入您的題目內容？`,
+            options: ["選項 A（點選左側圓點設為正解）", "選項 B", "選項 C", "選項 D"],
+            answer: 0,
+            timeLimit: defaultTime,
+            explanation: "講師重點解析說明。"
+          });
+        }
+        this.renderVisualQuestionsEditor();
+      },
+
+      removeDraftQuestion(idx) {
+        if (this.editorDraftQuestions.length <= 1) {
+          this.showCustomToast("題庫至少需保留 1 道題目！");
+          return;
+        }
+        this.editorDraftQuestions.splice(idx, 1);
+        this.renderVisualQuestionsEditor();
+      },
+
+      moveDraftQuestion(idx, dir) {
+        const target = idx + dir;
+        if (target < 0 || target >= this.editorDraftQuestions.length) return;
+        const temp = this.editorDraftQuestions[idx];
+        this.editorDraftQuestions[idx] = this.editorDraftQuestions[target];
+        this.editorDraftQuestions[target] = temp;
+        this.renderVisualQuestionsEditor();
+      },
+
+      onJsonTextareaInput() {
+        try {
+          const parsed = JSON.parse(document.getElementById("questionsJsonTextarea").value);
+          if (Array.isArray(parsed)) {
+            this.editorDraftQuestions = parsed;
+            const wcCount = parsed.filter(q => q.type === "wordcloud").length;
+            const qzCount = parsed.length - wcCount;
+            document.getElementById("editorVisualCount").textContent = parsed.length;
+            document.getElementById("editorFooterSummary").textContent =
+              `目前共 ${parsed.length} 題（🎯 Kahoot 搶答 ${qzCount} 題 ＋ ☁️ 文字雲 ${wcCount} 題）`;
+          }
+        } catch (e) {}
+      },
+
+      resetDefaultQuestions() {
+        state.questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+        this.editorDraftQuestions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+        localStorage.removeItem("tonyquiz_pro_questions");
+        this.renderVisualQuestionsEditor();
+        this.updateDeckBadge();
+      },
+
+      saveQuestionsFromTextarea() {
+        try {
+          const parsed = this.editorViewMode === "JSON"
+            ? JSON.parse(document.getElementById("questionsJsonTextarea").value)
+            : this.editorDraftQuestions;
+          if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("題庫格式需為非空陣列");
+          state.questions = JSON.parse(JSON.stringify(parsed));
+          localStorage.setItem("tonyquiz_pro_questions", JSON.stringify(state.questions));
+          this.updateDeckBadge();
+          this.toggleQuizEditorModal(false);
+        } catch (e) {
+          this.showCustomToast("JSON 格式有誤，請檢查語法：" + e.message);
+        }
+      },
+
+      showCustomToast(msg) {
+        const statusEl = document.getElementById("aiGenStatus");
+        if (statusEl) {
+          statusEl.classList.remove("hidden");
+          statusEl.textContent = "⚠️ " + msg;
+        }
+      },
+
+      async generateQuizWithGemini() {
+        const topic = document.getElementById("aiTopicInput").value.trim();
+        if (!topic) {
+          this.showCustomToast("請先在上方輸入您想出題的「授課主題或教材關鍵字」！");
+          document.getElementById("aiTopicInput").focus();
+          return;
+        }
+
+        const mode = document.getElementById("aiQuizModeSelect").value;
+        const timeLimit = Number(document.getElementById("aiTimeLimitSelect").value || 20);
+        let totalCount = Math.max(1, Math.min(20, Number(document.getElementById("aiTotalCountInput").value || 5)));
+        let quizCount = totalCount;
+        let wcCount = 0;
+
+        if (mode === "ALL_KAHOOT") {
+          quizCount = totalCount;
+          wcCount = 0;
+        } else if (mode === "ALL_WORDCLOUD") {
+          quizCount = 0;
+          wcCount = totalCount;
+        } else if (mode === "MIXED_AUTO") {
+          if (totalCount === 1) {
+            quizCount = 1;
+            wcCount = 0;
+          } else if (totalCount <= 4) {
+            wcCount = 1;
+            quizCount = totalCount - 1;
+          } else {
+            wcCount = 2;
+            quizCount = totalCount - 2;
+          }
+        } else if (mode === "CUSTOM_RATIO") {
+          quizCount = Math.max(0, Math.min(20, Number(document.getElementById("aiCustomQuizCount").value || 0)));
+          wcCount = Math.max(0, Math.min(20, Number(document.getElementById("aiCustomWcCount").value || 0)));
+          totalCount = quizCount + wcCount;
+          if (totalCount === 0) {
+            this.showCustomToast("自訂配比的總題數至少需為 1 題！");
+            return;
+          }
+        }
+
+        const statusEl = document.getElementById("aiGenStatus");
+        const btn = document.getElementById("btnGenerateAiQuiz");
+        statusEl.classList.remove("hidden");
+        statusEl.textContent = `✨ Gemini AI 正在為您量身打造共 ${totalCount} 題（🎯 ${quizCount} 題 Kahoot 搶答 + ☁️ ${wcCount} 題文字雲），請稍候...`;
+        btn.disabled = true;
+
+        let structureInstruction = "";
+        if (wcCount === 0) {
+          structureInstruction = `全部 ${quizCount} 題都必須為 type: "quiz" 的 Kahoot 四選一單選搶答題（含 q 題目、options 四個選項陣列、answer 正確索引 0~3、timeLimit: ${timeLimit}、explanation 講師解析）。`;
+        } else if (quizCount === 0) {
+          structureInstruction = `全部 ${wcCount} 題都必須為 type: "wordcloud" 的 Mentimeter 即時文字雲互動題（含 q 題目、sampleWords 包含 7 個預設範例詞彙陣列）。`;
+        } else {
+          structureInstruction = `總共 ${totalCount} 題，其中必須包含「${quizCount} 題 type: "quiz" 的四選一單選搶答題（含 q 題目、options 四個選項陣列、answer 正確索引 0~3、timeLimit: ${timeLimit}、explanation 講師解析）」以及「${wcCount} 題 type: "wordcloud" 的即時文字雲題（含 q 題目、sampleWords 7個範例詞）」。請將第 1 題設為破冰文字雲，其餘依教學節奏穿插或置於結尾反思。`;
+        }
+
+        const prompt = `你現在是企業培訓專家 TONY 楊文澤老師的課程設計 AI 助教。
+請針對主題：「${topic}」設計一份共 ${totalCount} 題的課堂互動題庫（繁體中文）：
+${structureInstruction}
+請嚴格輸出純 JSON Array，不要加任何 markdown 語法或額外文字。`;
+
+        try {
+          const rawText = await callGeminiAPI(prompt, true);
+          if (!rawText) return;
+          const cleaned = rawText.replace(/```json|```/g, "").trim();
+          const parsed = JSON.parse(cleaned);
+          this.editorDraftQuestions = parsed;
+          this.renderVisualQuestionsEditor();
+          statusEl.textContent = `✅ AI 題庫生成完畢（共 ${parsed.length} 題）！您可在下方直接預覽或微調，確認無誤後請點擊右下角「儲存並套用題庫」。`;
+        } catch (err) {
+          statusEl.textContent = "❌ 生成失敗：" + err.message;
+        } finally {
+          btn.disabled = false;
+        }
+      },
+
+      toggleSettingsModal(show) {
+        const modal = document.getElementById("modal-settings");
+        if (show) {
+          document.getElementById("cfgGeminiKey").value = localStorage.getItem("tonyquiz_gemini_key") || "";
+          modal.classList.remove("hidden");
+        } else {
+          modal.classList.add("hidden");
+        }
+      },
+
+      saveSystemSettings() {
+        const key = document.getElementById("cfgGeminiKey").value.trim();
+        localStorage.setItem("tonyquiz_gemini_key", key);
+        this.toggleSettingsModal(false);
+        alert("設定已儲存！");
+      }
+    };
+
+    window.app = app;
+    window.authApp = authApp;
+    window.adminApp = adminApp;
+    window.addEventListener("DOMContentLoaded", () => app.init());
+  </script>
+</body>
+</html>
