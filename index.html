@@ -1094,7 +1094,7 @@
         <!-- AI 生成設定面板 -->
         <div class="bg-indigo-950/35 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-xs sm:text-sm font-black text-indigo-300">✨ 輸入授課主題，由 Gemini AI (gemini-3.8-flash) 自動量身出題</span>
+            <span class="text-xs sm:text-sm font-black text-indigo-300">✨ 輸入授課主題，由 Gemini AI (gemini-4-hydrogen) 自動量身出題</span>
             <div class="flex flex-wrap gap-1.5">
               <button type="button" onclick="app.applyQuickPreset('ALL_KAHOOT', 5)" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-400/30 text-[11px] font-bold text-indigo-200">🎯 全Kahoot 5題</button>
               <button type="button" onclick="app.applyQuickPreset('ALL_KAHOOT', 10)" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-400/30 text-[11px] font-bold text-indigo-200">🔥 全Kahoot 10題</button>
@@ -1226,7 +1226,7 @@
             <input id="cfgGeminiKey" type="password" placeholder="AIzaSy..."
               class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:outline-none focus:border-indigo-500 selectable-text" />
             <p class="text-[11px] text-slate-400 mt-2">
-              系統優先呼叫 <code class="text-indigo-300 font-bold">gemini-3.8-flash</code>，並自動備援至 <code class="text-indigo-300">gemini-3.5-flash</code> 與 <code class="text-indigo-300">gemini-3-flash-preview</code>。
+              系統優先呼叫 <code class="text-indigo-300 font-bold">gemini-4-hydrogen</code>，並自動備援至 <code class="text-indigo-300">gemini-3.8-flash</code> 與 <code class="text-indigo-300">gemini-3.5-flash</code>。
             </p>
           </div>
 
@@ -1587,10 +1587,10 @@ service cloud.firestore {
       }
     };
 
-    // ==================== Gemini API 通用呼叫器 (gemini-3.8-flash 優先 + 備援) ====================
+    // ==================== Gemini API 通用呼叫器 (gemini-4-hydrogen 優先 + 備援) ====================
     async function callGeminiAPI(prompt, expectJson = false) {
       const apiKey = state.geminiApiKey || "";
-      const models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3-flash-preview"];
+      const models = ["gemini-4-hydrogen", "gemini-3.8-flash", "gemini-3.5-flash"];
 
       for (const model of models) {
         try {
